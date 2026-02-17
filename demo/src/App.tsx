@@ -1,17 +1,23 @@
 import * as Babel from '@babel/standalone'
+import { javascript } from '@codemirror/lang-javascript'
+import CodeMirror from '@uiw/react-codemirror'
 import * as React from 'react'
 import { useMemo, useState } from 'react'
 import { createGumRoot, gum } from '../../src'
+import { CONST, UTILS } from 'gum-jsx'
 
 const initialCode = `
-<gum.frame padding margin rounded>
-  <gum.hstack spacing>
-    <gum.circle fill="#0ea5e9" />
-    <gum.square rounded fill="#f43f5e" />
-    <gum.text>Hello</gum.text>
-  </gum.hstack>
-</gum.frame>
+<frame padding margin rounded>
+  <hstack spacing>
+    <circle fill={blue} />
+    <square rounded fill={red} />
+    <text>Hello</text>
+  </hstack>
+</frame>
 `.trim() + '\n'
+
+type CompiledScene = React.ReactNode | (() => React.ReactNode)
+type SceneFunction = (react: typeof React, ...args: unknown[]) => CompiledScene
 
 function compileScene(code: string): React.ReactNode {
   const trimmed = code.replace(/^\s*\/\/.*\n/gm, '').trim()
@@ -30,9 +36,13 @@ function compileScene(code: string): React.ReactNode {
     throw new Error('Compilation failed: no output')
   }
 
+  const inputs = { ...CONST, ...UTILS, ...gum }
+
   const returned = `return ${compiled}`
-  const run = new Function('React', 'gum', returned) as (react: typeof React, gumApi: typeof gum) => React.ReactNode
-  return run(React, gum)
+  const runner = new Function('React', ...Object.keys(inputs), returned) as SceneFunction
+
+  const output = runner(React, ...Object.values(inputs))
+  return typeof output === 'function' ? output() : output
 }
 
 function renderSvg(node: React.ReactNode, width: number, height: number): string {
@@ -47,6 +57,7 @@ export default function App() {
   const [code, setCode] = useState(initialCode)
   const [widthText, setWidthText] = useState('720')
   const [heightText, setHeightText] = useState('420')
+  const editorExtensions = useMemo(() => [javascript({ jsx: true, typescript: true })], [])
 
   const result = useMemo(() => {
     try {
@@ -71,28 +82,53 @@ export default function App() {
   }, [code, widthText, heightText])
 
   return (
-    <main className="app-shell">
-      <section className="pane editor-pane">
-        <header className="pane-header">JSX Editor</header>
-        <div className="toolbar">
-          <label className="field">
+    <main className="grid min-h-screen grid-cols-1 gap-3 bg-[radial-gradient(circle_at_10%_10%,#e6eefb,#f5f8ff_40%,#e9edf7)] p-3 lg:grid-cols-2">
+      <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <header className="border-b border-slate-200 px-3.5 py-3 text-[13px] font-bold uppercase tracking-[0.02em] text-slate-800">
+          JSX Editor
+        </header>
+        <div className="flex gap-2.5 border-b border-slate-200 bg-slate-50 px-3 py-2.5">
+          <label className="flex items-center gap-2 font-mono text-xs font-semibold text-slate-700">
             W
-            <input value={widthText} onChange={(event) => setWidthText(event.target.value)} />
+            <input
+              className="w-[86px] rounded-md border border-slate-300 px-2 py-1.5 text-[13px] leading-none text-slate-900 outline-none ring-sky-300 focus:ring"
+              value={widthText}
+              onChange={(event) => setWidthText(event.target.value)}
+            />
           </label>
-          <label className="field">
+          <label className="flex items-center gap-2 font-mono text-xs font-semibold text-slate-700">
             H
-            <input value={heightText} onChange={(event) => setHeightText(event.target.value)} />
+            <input
+              className="w-[86px] rounded-md border border-slate-300 px-2 py-1.5 text-[13px] leading-none text-slate-900 outline-none ring-sky-300 focus:ring"
+              value={heightText}
+              onChange={(event) => setHeightText(event.target.value)}
+            />
           </label>
         </div>
-        <textarea className="editor" value={code} onChange={(event) => setCode(event.target.value)} spellCheck={false} />
+        <div className="cm-shell min-h-0 flex-1 bg-slate-50">
+          <CodeMirror
+            value={code}
+            className="h-full"
+            extensions={editorExtensions}
+            theme="light"
+            onChange={(value) => setCode(value)}
+          />
+        </div>
       </section>
 
-      <section className="pane preview-pane">
-        <header className="pane-header">Renderer Output</header>
+      <section className="flex min-h-[45vh] min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white lg:min-h-0">
+        <header className="border-b border-slate-200 px-3.5 py-3 text-[13px] font-bold uppercase tracking-[0.02em] text-slate-800">
+          Renderer Output
+        </header>
         {result.error == null ? (
-          <div className="preview" dangerouslySetInnerHTML={{ __html: result.svg }} />
+          <div
+            className="grid flex-1 place-items-center overflow-auto bg-slate-50 p-3 [&>svg]:h-auto [&>svg]:w-full"
+            dangerouslySetInnerHTML={{ __html: result.svg }}
+          />
         ) : (
-          <pre className="error">{result.error}</pre>
+          <pre className="m-0 whitespace-pre-wrap bg-rose-50 p-3.5 font-mono text-[13px] leading-relaxed text-rose-700">
+            {result.error}
+          </pre>
         )}
       </section>
     </main>
