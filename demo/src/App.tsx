@@ -7,13 +7,13 @@ import { createGumRoot, gum } from '../../src'
 import { CONST, UTILS } from 'gum-jsx'
 
 const initialCode = `
-<frame padding margin rounded>
-  <hstack spacing>
-    <circle fill={blue} />
-    <square rounded fill={red} />
-    <text>Hello</text>
-  </hstack>
-</frame>
+<Frame padding margin rounded>
+  <HStack spacing>
+    <Circle fill={blue} />
+    <Square rounded fill={red} />
+    <Text>Hello</Text>
+  </HStack>
+</Frame>
 `.trim() + '\n'
 
 type CompiledScene = React.ReactNode | (() => React.ReactNode)

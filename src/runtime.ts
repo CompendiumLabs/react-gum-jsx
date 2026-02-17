@@ -12,38 +12,37 @@ const RESERVED_PROPS = new Set([
 type GumElemCtor = new (args?: Record<string, unknown>) => Element
 
 const GUM_CONSTRUCTORS: Record<string, GumElemCtor> = {
-  group: Group,
-  svg: Svg,
-  rect: Rectangle,
-  rectangle: Rectangle,
-  spacer: Spacer,
-  box: Box,
-  frame: Frame,
-  stack: Stack,
-  vstack: VStack,
-  hstack: HStack,
-  hwrap: HWrap,
-  grid: Grid,
-  points: Points,
-  anchor: Anchor,
-  attach: Attach,
-  absolute: Absolute,
-  line: Line,
-  unitline: UnitLine,
-  vline: VLine,
-  hline: HLine,
-  square: Square,
-  ellipse: Ellipse,
-  circle: Circle,
-  dot: Dot,
-  ray: Ray,
-  shape: Shape,
-  triangle: Triangle,
-  path: Path,
-  spline: Spline,
-  roundedrect: RoundedRect,
-  arrowhead: ArrowHead,
-  arrow: Arrow,
+  Group,
+  Svg,
+  Rectangle,
+  Spacer,
+  Box,
+  Frame,
+  Stack,
+  VStack,
+  HStack,
+  HWrap,
+  Grid,
+  Points,
+  Anchor,
+  Attach,
+  Absolute,
+  Line,
+  UnitLine,
+  VLine,
+  HLine,
+  Square,
+  Ellipse,
+  Circle,
+  Dot,
+  Ray,
+  Shape,
+  Triangle,
+  Path,
+  Spline,
+  RoundedRect,
+  ArrowHead,
+  Arrow,
 }
 
 function scalarText(value: unknown): string {
@@ -84,7 +83,7 @@ function instanceToGum(instance: GumHostInstance): Element | null {
   const props = toGumProps(instance.props)
   const type = instance.type.slice(4)
 
-  if (type === 'text') {
+  if (type === 'Text') {
     const value = scalarText((props as any).value)
     const text = value.length > 0 ? value : childrenText(instance.children)
     if (text.trim().length === 0) return null

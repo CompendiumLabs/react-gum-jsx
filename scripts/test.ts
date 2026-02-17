@@ -4,10 +4,10 @@ import { none, blue, red } from 'gum-jsx'
 
 function makeScene() {
   return createElement(
-    gum.hstack,
+    gum.HStack,
     { spacing: 0.1 },
-    createElement(gum.circle, { fill: blue, stroke: none}),
-    createElement(gum.square, { rounded: true, fill: red, stroke: none }),
+    createElement(gum.Circle, { fill: blue, stroke: none}),
+    createElement(gum.Square, { rounded: true, fill: red, stroke: none }),
   )
 }
 

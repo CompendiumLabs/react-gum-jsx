@@ -14,24 +14,23 @@ Implemented from `react.md`:
 ## Usage
 
 ```tsx
-import { GumCanvas, gum } from './react'
+import { GumCanvas, HStack, Rectangle, Circle, Text, blue, red } from './react-gum-jsx'
 
 export function Demo() {
-  return (
-    <GumCanvas width={640} height={360}>
-      <gum.group rect={[0, 0, 1, 1]}>
-        <gum.rect rect={[0.1, 0.15, 0.9, 0.85]} fill="#1e293b" />
-        <gum.text rect={[0.15, 0.2, 0.85, 0.35]} value="hello gum + react" fill="white" />
-      </gum.group>
-    </GumCanvas>
-  )
+  return <GumCanvas width={640} height={360}>
+    <HStack>
+      <Rectangle fill={blue} />
+      <Circle fill={red} />
+      <Text>Hello</Text>
+    </HStack>
+  </GumCanvas>
 }
 ```
 
 Or use the imperative root:
 
 ```ts
-import { createGumRoot, gum } from './react'
+import { createGumRoot, blue } from './react-gum-jsx'
 
 const root = createGumRoot({
   width: 500,
@@ -41,7 +40,7 @@ const root = createGumRoot({
   },
 })
 
-root.render(<gum.rect rect={[0.2, 0.2, 0.8, 0.8]} fill="tomato" />)
+root.render(<Rectangle rounded fill={blue} />)
 ```
 
 ## Notes
