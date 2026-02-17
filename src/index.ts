@@ -1,5 +1,3 @@
 export { createGumRoot } from './renderer'
-export type { GumRoot, GumRootOptions } from './renderer'
-export { GumCanvas } from './canvas'
-export type { GumCanvasProps } from './canvas'
-export { gum } from './primitives'
+export { Gum } from './canvas'
+export * from './primitives'

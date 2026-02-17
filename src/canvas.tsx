@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef } from 'react'
 import type { CSSProperties, PropsWithChildren } from 'react'
 import { createGumRoot, type GumRoot } from './renderer'
 
-export interface GumCanvasProps {
+export interface GumProps {
   width?: number
   height?: number
   className?: string
@@ -10,14 +10,14 @@ export interface GumCanvasProps {
   svgProps?: Record<string, unknown>
 }
 
-export function GumCanvas({
+export function Gum({
   width = 500,
   height = 500,
   className,
   style,
   svgProps,
   children,
-}: PropsWithChildren<GumCanvasProps>) {
+}: PropsWithChildren<GumProps>) {
   const hostRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<GumRoot | null>(null)
 

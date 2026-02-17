@@ -3,7 +3,7 @@ import { javascript } from '@codemirror/lang-javascript'
 import CodeMirror from '@uiw/react-codemirror'
 import * as React from 'react'
 import { useMemo, useState } from 'react'
-import { createGumRoot, gum } from '../../src'
+import { createGumRoot, CONTEXT } from '../../src'
 import { CONST, UTILS } from 'gum-jsx'
 
 const initialCode = `
@@ -36,7 +36,7 @@ function compileScene(code: string): React.ReactNode {
     throw new Error('Compilation failed: no output')
   }
 
-  const inputs = { ...CONST, ...UTILS, ...gum }
+  const inputs = { ...CONST, ...UTILS, ...CONTEXT }
 
   const returned = `return ${compiled}`
   const runner = new Function('React', ...Object.keys(inputs), returned) as SceneFunction
