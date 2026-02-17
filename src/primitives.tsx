@@ -54,11 +54,3 @@ type PrimitiveName = (typeof primitiveNames)[number]
 export const gum = Object.fromEntries(
   primitiveNames.map((name) => [name, createPrimitive(name)])
 ) as Record<PrimitiveName, GumPrimitiveComponent>
-
-export const GumGroup = gum.group
-export const GumRect = gum.rect
-export const GumText = gum.text
-
-export type GumGroupProps = GumPrimitiveProps
-export type GumRectProps = GumPrimitiveProps
-export type GumTextProps = GumPrimitiveProps

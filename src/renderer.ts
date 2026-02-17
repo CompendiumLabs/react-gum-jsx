@@ -1,15 +1,8 @@
 import Reconciler from 'react-reconciler'
-import { createContext } from 'react'
-import type { ReactNode } from 'react'
+import { createContext, type ReactNode } from 'react'
 import { renderContainer } from './runtime'
-import {
-  appendChild,
-  createHostInstance,
-  createHostText,
-  insertBefore,
-  removeChild,
-} from './types'
-import type { GumContainer, GumHostChild, GumHostInstance, GumHostProps, GumHostType } from './types'
+import { appendChild, createHostInstance, createHostText, insertBefore, removeChild } from './types'
+import type { GumContainer, GumHostChild, GumHostInstance, GumHostProps, GumHostText, GumHostType } from './types'
 
 const DEFAULT_EVENT_PRIORITY = 0
 let currentUpdatePriority = DEFAULT_EVENT_PRIORITY
@@ -48,7 +41,21 @@ function isEqualProps(a: GumHostProps, b: GumHostProps): boolean {
   return true
 }
 
-const hostConfig: any = {
+function markRootDirty(node: GumHostChild): void {
+  let current = node.parent
+  while ((current as GumHostInstance | null)?.kind === 'instance') {
+    current = (current as GumHostInstance).parent
+  }
+  if (current != null) (current as GumContainer).dirty = true
+}
+
+function flushIfDirty(container: GumContainer): void {
+  if (!container.dirty) return
+  renderContainer(container)
+  container.dirty = false
+}
+
+const hostConfig: Reconciler.HostConfig = {
   rendererVersion: '0.1.0',
   rendererPackageName: '@gum-jsx/react',
   extraDevToolsConfig: null,
@@ -57,11 +64,7 @@ const hostConfig: any = {
   getChildHostContext: () => HOST_CONTEXT,
   getPublicInstance: (instance: GumHostInstance) => instance,
   prepareForCommit: () => null,
-  resetAfterCommit: (container: GumContainer) => {
-    if (!container.dirty) return
-    renderContainer(container)
-    container.dirty = false
-  },
+  resetAfterCommit: (container: GumContainer) => flushIfDirty(container),
   shouldSetTextContent: () => false,
   createInstance: (type: string, props: GumHostProps) => createHostInstance(normalizeType(type), props),
   createTextInstance: (text: string) => createHostText(text),
@@ -71,34 +74,17 @@ const hostConfig: any = {
     if (isEqualProps(oldProps, newProps)) return null
     return newProps
   },
-  commitUpdate: (instance: GumHostInstance, ...args: unknown[]) => {
-    const maybeType = args[0]
-    const nextProps = typeof maybeType === 'string'
-      ? (args[2] as GumHostProps | undefined)
-      : (args[0] as GumHostProps | undefined)
-    if (nextProps != null) {
-      instance.props = nextProps
-    }
-    let parent = instance.parent
-    while (parent != null && (parent as GumHostInstance).kind === 'instance') {
-      parent = (parent as GumHostInstance).parent
-    }
-    if (parent != null) (parent as GumContainer).dirty = true
+  commitUpdate: (instance: GumHostInstance, type: string, oldProps: GumHostProps, newProps: GumHostProps) => {
+    if (newProps != null) instance.props = newProps
+    markRootDirty(instance)
   },
-  commitTextUpdate: (textInstance: { text: string }, _oldText: string, newText: string) => {
+  commitTextUpdate: (textInstance: GumHostText, _oldText: string, newText: string) => {
     textInstance.text = newText
-    const parent = (textInstance as any).parent
-    let node = parent
-    while (node != null && node.kind === 'instance') {
-      node = node.parent
-    }
-    if (node != null) node.dirty = true
+    markRootDirty(textInstance)
   },
   appendChild: (parent: GumHostInstance, child: GumHostChild) => {
     appendChild(parent, child)
-    let root: any = parent
-    while (root?.kind === 'instance') root = root.parent
-    if (root != null) root.dirty = true
+    markRootDirty(parent)
   },
   appendChildToContainer: (container: GumContainer, child: GumHostChild) => {
     appendChild(container, child)
@@ -106,9 +92,7 @@ const hostConfig: any = {
   },
   insertBefore: (parent: GumHostInstance, child: GumHostChild, beforeChild: GumHostChild) => {
     insertBefore(parent, child, beforeChild)
-    let root: any = parent
-    while (root?.kind === 'instance') root = root.parent
-    if (root != null) root.dirty = true
+    markRootDirty(parent)
   },
   insertInContainerBefore: (container: GumContainer, child: GumHostChild, beforeChild: GumHostChild) => {
     insertBefore(container, child, beforeChild)
@@ -116,9 +100,7 @@ const hostConfig: any = {
   },
   removeChild: (parent: GumHostInstance, child: GumHostChild) => {
     removeChild(parent, child)
-    let root: any = parent
-    while (root?.kind === 'instance') root = root.parent
-    if (root != null) root.dirty = true
+    markRootDirty(parent)
   },
   removeChildFromContainer: (container: GumContainer, child: GumHostChild) => {
     removeChild(container, child)
@@ -223,25 +205,18 @@ export function createGumRoot(options: GumRootOptions = {}): GumRoot {
     container,
     render(children: ReactNode): void {
       updateInternalRoot(internalRoot, children)
-      if (container.dirty) {
-        renderContainer(container)
-        container.dirty = false
-      }
+      flushIfDirty(container)
     },
     unmount(): void {
       updateInternalRoot(internalRoot, null)
-      if (container.dirty) {
-        renderContainer(container)
-        container.dirty = false
-      }
+      flushIfDirty(container)
     },
     setSize(nextWidth: number, nextHeight: number): void {
       if (container.width === nextWidth && container.height === nextHeight) return
       container.width = nextWidth
       container.height = nextHeight
       container.dirty = true
-      renderContainer(container)
-      container.dirty = false
+      flushIfDirty(container)
     },
     setRenderCallback(fn?: (svg: string) => void): void {
       container.onRender = fn
