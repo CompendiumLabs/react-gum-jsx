@@ -11,12 +11,24 @@
     }
   },
   "scripts": {
-    "test": "bun ./scripts/test.ts"
+    "test": "bun ./scripts/test.ts",
+    "demo:dev": "vite demo",
+    "demo:build": "vite build demo",
+    "demo:preview": "vite preview demo"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
   },
   "dependencies": {
+    "@babel/standalone": "^7.29.1",
+    "@types/babel__standalone": "^7.1.9",
+    "@types/react-reconciler": "^0.33.0",
+    "gum-jsx": "file:../gum.jsx",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-reconciler": "^0.33.0",
-    "gum-jsx": "link:gum-jsx"
+    "react-reconciler": "^0.33.0"
   }
 }

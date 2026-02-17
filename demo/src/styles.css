@@ -1,0 +1,104 @@
+:root {
+  color-scheme: light;
+  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  background: #f2f5f9;
+  color: #111827;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+  gap: 12px;
+  padding: 12px;
+  background: radial-gradient(circle at 10% 10%, #e6eefb, #f5f8ff 40%, #e9edf7);
+}
+
+.pane {
+  background: #ffffff;
+  border: 1px solid #d9e2ef;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.pane-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e7edf6;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e7edf6;
+  background: #fbfcff;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 12px/1 'IBM Plex Mono', 'Consolas', monospace;
+}
+
+.field input {
+  width: 86px;
+  border: 1px solid #cdd8e6;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font: 500 13px/1.2 'IBM Plex Mono', 'Consolas', monospace;
+}
+
+.editor {
+  width: 100%;
+  flex: 1;
+  border: 0;
+  resize: none;
+  padding: 14px;
+  font: 400 14px/1.5 'IBM Plex Mono', 'Consolas', monospace;
+  color: #111827;
+  background: #fbfcff;
+  outline: none;
+}
+
+.preview {
+  flex: 1;
+  padding: 12px;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  background: #f8fbff;
+}
+
+.preview > svg {
+  width: 100%;
+  height: auto;
+}
+
+.error {
+  margin: 0;
+  padding: 14px;
+  color: #b42318;
+  background: #fff1f0;
+  font: 500 13px/1.5 'IBM Plex Mono', 'Consolas', monospace;
+  white-space: pre-wrap;
+}

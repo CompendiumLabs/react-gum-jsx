@@ -55,7 +55,7 @@ function flushIfDirty(container: GumContainer): void {
   container.dirty = false
 }
 
-const hostConfig: Reconciler.HostConfig = {
+const hostConfig: any = {
   rendererVersion: '0.1.0',
   rendererPackageName: '@gum-jsx/react',
   extraDevToolsConfig: null,
