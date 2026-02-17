@@ -1,13 +1,16 @@
 import { createElement } from 'react'
-import { createGumRoot, gum } from '../src/index'
-import { none, blue, red } from 'gum-jsx'
+import { createGumRoot, HStack, Circle, Square, Text } from '../src/index'
+import { setTheme, none, blue, red } from 'gum-jsx'
+
+setTheme('dark')
 
 function makeScene() {
   return createElement(
-    gum.HStack,
+    HStack,
     { spacing: 0.1 },
-    createElement(gum.Circle, { fill: blue, stroke: none}),
-    createElement(gum.Square, { rounded: true, fill: red, stroke: none }),
+    createElement(Circle, { fill: blue, stroke: none}),
+    createElement(Square, { rounded: true, fill: red, stroke: none }),
+    createElement(Text, { value: 'Hello' }),
   )
 }
 
