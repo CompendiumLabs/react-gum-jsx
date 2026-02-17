@@ -1,4 +1,4 @@
-import { setTheme, Element, Svg, Group, Rectangle, Spacer, Box, Frame, Stack, VStack, HStack, HWrap, Grid, Points, Anchor, Attach, Absolute, Line, UnitLine, VLine, HLine, Square, Ellipse, Circle, Dot, Ray, Shape, Triangle, Path, Spline, RoundedRect, ArrowHead, Arrow, Span } from 'gum-jsx'
+import { setTheme, Element, Group, Svg, Box, Frame, Stack, VStack, HStack, HWrap, Grid, Points, Anchor, Attach, Absolute, Spacer, Ray, Line, UnitLine, HLine, VLine, Rectangle, RoundedRect, Square, Ellipse, Circle, Dot, Shape, Path, Spline, Triangle, Arrow, Field, Span, Text, TextBox, TextFrame, TextStack, TextFlex, Bold, Italic, Latex, Equation, TitleBox, TitleFrame, ArrowHead, ArrowSpline, Node, Edge, Network, SymPoints, SymLine, SymSpline, SymShape, SymFill, SymField, Bar, VBar, HBar, Bars, VBars, HBars, Scale, VScale, HScale, Labels, VLabels, HLabels, Axis, HAxis, VAxis, BoxLabel, Mesh, HMesh, VMesh, Mesh2D, Graph, Plot, BarPlot, Legend, Slide } from 'gum-jsx'
 import type { GumContainer, GumHostChild, GumHostInstance, GumHostProps } from './types'
 
 const RESERVED_PROPS = new Set([
@@ -12,37 +12,7 @@ const RESERVED_PROPS = new Set([
 type GumElemCtor = new (args?: Record<string, unknown>) => Element
 
 const GUM_CONSTRUCTORS: Record<string, GumElemCtor> = {
-  Group,
-  Svg,
-  Rectangle,
-  Spacer,
-  Box,
-  Frame,
-  Stack,
-  VStack,
-  HStack,
-  HWrap,
-  Grid,
-  Points,
-  Anchor,
-  Attach,
-  Absolute,
-  Line,
-  UnitLine,
-  VLine,
-  HLine,
-  Square,
-  Ellipse,
-  Circle,
-  Dot,
-  Ray,
-  Shape,
-  Triangle,
-  Path,
-  Spline,
-  RoundedRect,
-  ArrowHead,
-  Arrow,
+  Element, Group, Svg, Box, Frame, Stack, VStack, HStack, HWrap, Grid, Points, Anchor, Attach, Absolute, Spacer, Ray, Line, UnitLine, HLine, VLine, Rectangle, RoundedRect, Square, Ellipse, Circle, Dot, Shape, Path, Spline, Triangle, Arrow, Field, Span, Text, TextBox, TextFrame, TextStack, TextFlex, Bold, Italic, Latex, Equation, TitleBox, TitleFrame, ArrowHead, ArrowSpline, Node, Edge, Network, SymPoints, SymLine, SymSpline, SymShape, SymFill, SymField, Bar, VBar, HBar, Bars, VBars, HBars, Scale, VScale, HScale, Labels, VLabels, HLabels, Axis, HAxis, VAxis, BoxLabel, Mesh, HMesh, VMesh, Mesh2D, Graph, Plot, BarPlot, Legend, Slide
 }
 
 function scalarText(value: unknown): string {

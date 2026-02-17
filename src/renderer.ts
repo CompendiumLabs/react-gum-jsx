@@ -57,7 +57,7 @@ function flushIfDirty(container: GumContainer): void {
 
 const hostConfig: any = {
   rendererVersion: '0.1.0',
-  rendererPackageName: '@gum-jsx/react',
+  rendererPackageName: 'react-gum-jsx',
   extraDevToolsConfig: null,
   now: Date.now,
   getRootHostContext: () => HOST_CONTEXT,
