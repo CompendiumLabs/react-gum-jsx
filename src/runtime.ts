@@ -33,6 +33,12 @@ function toGumChild(child: GumHostChild): Element | string | null {
   return instanceToGum(child)
 }
 
+function containerChildren(children: GumHostChild[]): (Element | string)[] {
+  return children
+    .map((child) => toGumChild(child))
+    .filter((c): c is Element | string => c != null)
+}
+
 function instanceToGum(instance: GumHostInstance): Element | null {
   const props = toGumProps(instance.props)
   const type = instance.type.slice(4)
@@ -41,24 +47,16 @@ function instanceToGum(instance: GumHostInstance): Element | null {
     throw new Error(`Unsupported gum component: ${instance.type}`)
   }
 
-  const children = instance.children
-    .map((child) => toGumChild(child))
-    .filter((c): c is Element | string => c != null)
+  const children = containerChildren(instance.children)
   const args = children.length > 0 ? { ...props, children } : props
   return new ctor(args)
-}
-
-function containerChildren(container: GumContainer): (Element | string)[] {
-  return container.rootChildren
-    .map((child) => toGumChild(child))
-    .filter((c): c is Element | string => c != null)
 }
 
 export function renderContainer(container: GumContainer): void {
   if (container.theme != null) {
     setTheme(container.theme)
   }
-  const children = containerChildren(container)
+  const children = containerChildren(container.rootChildren)
   const svgElem = new Svg({
     size: [container.width, container.height],
     children,
