@@ -28,6 +28,7 @@ export interface GumContainer {
   svgProps?: Record<string, unknown>
   rootChildren: GumHostChild[]
   currentSvg: string
+  renderError?: unknown
   dirty: boolean
   onRender?: (svg: string) => void
 }

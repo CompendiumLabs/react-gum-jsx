@@ -51,7 +51,11 @@ function markRootDirty(node: GumHostChild): void {
 
 function flushIfDirty(container: GumContainer): void {
   if (!container.dirty) return
-  renderContainer(container)
+  try {
+    renderContainer(container)
+  } catch (error) {
+    container.renderError = error
+  }
   container.dirty = false
 }
 
@@ -206,6 +210,11 @@ export function createGumRoot(options: GumRootOptions = {}): GumRoot {
     render(children: ReactNode): void {
       updateInternalRoot(internalRoot, children)
       flushIfDirty(container)
+      if (container.renderError != null) {
+        const err = container.renderError
+        container.renderError = null
+        throw err
+      }
     },
     unmount(): void {
       updateInternalRoot(internalRoot, null)
