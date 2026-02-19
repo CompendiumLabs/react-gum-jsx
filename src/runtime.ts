@@ -1,4 +1,10 @@
-import { setTheme, Element, Group, Svg, Box, Frame, Stack, VStack, HStack, HWrap, Grid, Points, Anchor, Attach, Absolute, Spacer, Ray, Line, UnitLine, HLine, VLine, Rectangle, RoundedRect, Square, Ellipse, Circle, Dot, Shape, Path, Spline, Triangle, Arrow, Field, Span, Text, TextBox, TextFrame, TextStack, TextFlex, Bold, Italic, Latex, Equation, TitleBox, TitleFrame, ArrowHead, ArrowSpline, Node, Edge, Network, SymPoints, SymLine, SymSpline, SymShape, SymFill, SymField, Bar, VBar, HBar, Bars, VBars, HBars, Scale, VScale, HScale, Labels, VLabels, HLabels, Axis, HAxis, VAxis, BoxLabel, Mesh, HMesh, VMesh, Mesh2D, Graph, Plot, BarPlot, Legend, Slide } from 'gum-jsx'
+import { ReactElement } from 'react'
+
+import { Element, Group, Svg, Box, Frame, Stack, VStack, HStack, HWrap, Grid, Points, Anchor, Attach, Absolute, Spacer, Ray, Line, UnitLine, HLine, VLine, Rectangle, Rect, RoundedRect, Square, Ellipse, Circle, Dot, Shape, Path, Spline, Triangle, Arrow, Field, Span, Text, TextBox, TextFrame, TextStack, TextFlex, Bold, Italic, Latex, Equation, TitleBox, TitleFrame, ArrowHead, ArrowSpline, Node, Edge, Network, SymPoints, SymLine, SymSpline, SymShape, SymFill, SymField, Bar, VBar, HBar, Bars, VBars, HBars, Scale, VScale, HScale, Labels, VLabels, HLabels, Axis, HAxis, VAxis, BoxLabel, Mesh, HMesh, VMesh, Mesh2D, Graph, Plot, BarPlot, Legend, Slide } from 'gum-jsx'
+
+import { is_function, setTheme } from 'gum-jsx'
+import type { Point } from 'gum-jsx'
+
 import type { GumContainer, GumHostChild, GumHostInstance, GumHostProps } from './types'
 
 const RESERVED_PROPS = new Set([
@@ -12,38 +18,63 @@ const RESERVED_PROPS = new Set([
 type GumElemCtor = new (args?: Record<string, unknown>) => Element
 
 const GUM_CONSTRUCTORS: Record<string, GumElemCtor> = {
-  Element, Group, Svg, Box, Frame, Stack, VStack, HStack, HWrap, Grid, Points, Anchor, Attach, Absolute, Spacer, Ray, Line, UnitLine, HLine, VLine, Rectangle, RoundedRect, Square, Ellipse, Circle, Dot, Shape, Path, Spline, Triangle, Arrow, Field, Span, Text, TextBox, TextFrame, TextStack, TextFlex, Bold, Italic, Latex, Equation, TitleBox, TitleFrame, ArrowHead, ArrowSpline, Node, Edge, Network, SymPoints, SymLine, SymSpline, SymShape, SymFill, SymField, Bar, VBar, HBar, Bars, VBars, HBars, Scale, VScale, HScale, Labels, VLabels, HLabels, Axis, HAxis, VAxis, BoxLabel, Mesh, HMesh, VMesh, Mesh2D, Graph, Plot, BarPlot, Legend, Slide
+  Element, Group, Svg, Box, Frame, Stack, VStack, HStack, HWrap, Grid, Points, Anchor, Attach, Absolute, Spacer, Ray, Line, UnitLine, HLine, VLine, Rectangle, Rect, RoundedRect, Square, Ellipse, Circle, Dot, Shape, Path, Spline, Triangle, Arrow, Field, Span, Text, TextBox, TextFrame, TextStack, TextFlex, Bold, Italic, Latex, Equation, TitleBox, TitleFrame, ArrowHead, ArrowSpline, Node, Edge, Network, SymPoints, SymLine, SymSpline, SymShape, SymFill, SymField, Bar, VBar, HBar, Bars, VBars, HBars, Scale, VScale, HScale, Labels, VLabels, HLabels, Axis, HAxis, VAxis, BoxLabel, Mesh, HMesh, VMesh, Mesh2D, Graph, Plot, BarPlot, Legend, Slide
 }
 
-function isReactElement(value: unknown): value is { type: string; props: Record<string, unknown> } {
-  return value != null && typeof value === 'object' && '$$typeof' in value && 'type' in value && 'props' in value
+function isReactElement(value: unknown): value is ReactElement {
+  return (
+    value        !=  null     &&
+    typeof value === 'object' &&
+    '$$typeof'   in  value    &&
+    'type'       in  value    &&
+    'props'      in  value
+  )
 }
 
-function reactElementToGum(el: { type: unknown; props: Record<string, unknown> }): Element | null {
+function stripGumType(type: string): string {
+  return type.startsWith('gum.') ? type.slice(4) : type
+}
+
+function getGumConstructor(type: string): GumElemCtor {
+  const name = stripGumType(type)
+  const ctor = GUM_CONSTRUCTORS[name]
+  if (ctor == null) {
+    throw new Error(`Unsupported gum primitive: ${name}`)
+  }
+  return ctor
+}
+
+function reactElementToGum(el: ReactElement): Element | null {
   // if type is a component function (e.g. GumPrimitive), call it to unwrap
-  if (typeof el.type === 'function') {
+  if (is_function(el.type)) {
     const inner = (el.type as Function)(el.props)
     if (isReactElement(inner)) return reactElementToGum(inner)
-    return null
+    return null // components might want to return null
   }
-  if (typeof el.type !== 'string') return null
-  const name = el.type.startsWith('gum.') ? el.type.slice(4) : el.type
-  const ctor = GUM_CONSTRUCTORS[name]
-  if (ctor == null) return null
-  return new ctor(toGumProps(el.props))
+
+  // we don't support fragments here (<>...</>)
+  if (typeof el.type !== 'string') {
+    throw new Error(`Non-standard React element: ${el.type}`)
+  }
+
+  // here we're expecting some kind of gum primitive
+  const ctor = getGumConstructor(el.type)
+  return new ctor(toGumProps(el.props as GumHostProps))
 }
 
+function ensureReactConvert<T>(value: T | ReactElement): T | Element | null {
+  return isReactElement(value) ? reactElementToGum(value) : value
+}
+
+// inject react->gum conversion if it's a function
 function toGumValue(value: unknown): unknown {
-  if (typeof value === 'function') {
+  if (is_function(value)) {
     return (...args: unknown[]) => {
       const result = (value as Function)(...args)
-      return isReactElement(result) ? reactElementToGum(result) : result
+      return ensureReactConvert(result)
     }
   }
-  if (isReactElement(value)) {
-    return reactElementToGum(value)
-  }
-  return value
+  return ensureReactConvert(value)
 }
 
 function toGumProps(props: GumHostProps): Record<string, unknown> {
@@ -53,6 +84,14 @@ function toGumProps(props: GumHostProps): Record<string, unknown> {
     out[key] = toGumValue(value)
   }
   return out
+}
+
+function instanceToGum(instance: GumHostInstance): Element | null {
+  const ctor = getGumConstructor(instance.type)
+  const props = toGumProps(instance.props)
+  const children = containerChildren(instance.children)
+  const args = children.length > 0 ? { ...props, children } : props
+  return new ctor(args)
 }
 
 function toGumChild(child: GumHostChild): Element | string | null {
@@ -70,29 +109,12 @@ function containerChildren(children: GumHostChild[]): (Element | string)[] {
     .filter((c): c is Element | string => c != null)
 }
 
-function instanceToGum(instance: GumHostInstance): Element | null {
-  const props = toGumProps(instance.props)
-  const type = instance.type.slice(4)
-  const ctor = GUM_CONSTRUCTORS[type]
-  if (ctor == null) {
-    throw new Error(`Unsupported gum component: ${instance.type}`)
-  }
-
-  const children = containerChildren(instance.children)
-  const args = children.length > 0 ? { ...props, children } : props
-  return new ctor(args)
-}
-
 export function renderContainer(container: GumContainer): void {
-  if (container.theme != null) {
-    setTheme(container.theme)
-  }
+  if (container.theme != null) setTheme(container.theme)
+  const size = [container.width, container.height] as Point
+  const props = container.svgProps ?? {}
   const children = containerChildren(container.rootChildren)
-  const svgElem = new Svg({
-    size: [container.width, container.height],
-    children,
-    ...(container.svgProps ?? {}),
-  })
+  const svgElem = new Svg({ size, children, ...props })
   const svg = svgElem.svg()
   container.currentSvg = svg
   container.onRender?.(svg)
