@@ -77,11 +77,15 @@ function toGumValue(value: unknown): unknown {
   return ensureReactConvert(value)
 }
 
+function toGumKey(key: string): string {
+  return key.replace(/-/g, '_')
+}
+
 function toGumProps(props: GumHostProps): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(props)) {
     if (RESERVED_PROPS.has(key)) continue
-    out[key] = toGumValue(value)
+    out[toGumKey(key)] = toGumValue(value)
   }
   return out
 }
