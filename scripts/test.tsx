@@ -1,5 +1,5 @@
-import { createGumRoot, Frame, HStack, Circle, Square, Text, SymLine, SymPoints, Graph, Plot, Points } from '../src/index'
-import { setTheme, none, blue, red, pi, sin, r2d } from 'gum-jsx'
+import { createGumRoot, Square, SymPoints, Graph } from '../src/index'
+import { setTheme, pi, sin, r2d } from 'gum-jsx'
 
 setTheme('dark')
 
@@ -12,7 +12,7 @@ function makeScene() {
   </Graph>
 }
 
-const root = createGumRoot({ width: 500, height: 500 })
+const root = createGumRoot({ size: [500, 500] })
 root.render(makeScene())
 
 console.log(root.getSvg())

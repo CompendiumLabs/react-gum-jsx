@@ -22,8 +22,7 @@ export interface GumHostInstance {
 export type GumHostChild = GumHostInstance | GumHostText
 
 export interface GumContainer {
-  width: number
-  height: number
+  size: [number, number]
   theme?: string
   svgProps?: Record<string, unknown>
   rootChildren: GumHostChild[]

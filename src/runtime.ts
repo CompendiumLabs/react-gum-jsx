@@ -115,7 +115,7 @@ function containerChildren(children: GumHostChild[]): (Element | string)[] {
 
 export function renderContainer(container: GumContainer): void {
   if (container.theme != null) setTheme(container.theme)
-  const size = [container.width, container.height] as Point
+  const size = container.size as Point
   const props = container.svgProps ?? {}
   const children = containerChildren(container.rootChildren)
   const svgElem = new Svg({ size, children, ...props })

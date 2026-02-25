@@ -13,14 +13,13 @@ export interface GumRoot {
   container: GumContainer
   render: (children: ReactNode) => void
   unmount: () => void
-  setSize: (width: number, height: number) => void
+  setSize: (size: [number, number]) => void
   setRenderCallback: (fn?: (svg: string) => void) => void
   getSvg: () => string
 }
 
 export interface GumRootOptions {
-  width?: number
-  height?: number
+  size?: [number, number]
   theme?: string
   svgProps?: Record<string, unknown>
   onRender?: (svg: string) => void
@@ -185,16 +184,14 @@ function updateInternalRoot(root: any, children: ReactNode, callback?: () => voi
 
 export function createGumRoot(options: GumRootOptions = {}): GumRoot {
   const {
-    width = 500,
-    height = 500,
+    size = [500, 500],
     theme,
     svgProps,
     onRender,
   } = options
 
   const container: GumContainer = {
-    width,
-    height,
+    size,
     theme,
     svgProps,
     rootChildren: [],
@@ -220,10 +217,11 @@ export function createGumRoot(options: GumRootOptions = {}): GumRoot {
       updateInternalRoot(internalRoot, null)
       flushIfDirty(container)
     },
-    setSize(nextWidth: number, nextHeight: number): void {
-      if (container.width === nextWidth && container.height === nextHeight) return
-      container.width = nextWidth
-      container.height = nextHeight
+    setSize(nextSize: [number, number]): void {
+      const [width, height] = container.size
+      const [nextWidth, nextHeight] = nextSize
+      if (width === nextWidth && height === nextHeight) return
+      container.size = nextSize
       container.dirty = true
       flushIfDirty(container)
     },

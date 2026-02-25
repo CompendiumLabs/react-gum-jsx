@@ -3,16 +3,14 @@ import type { CSSProperties, PropsWithChildren } from 'react'
 import { createGumRoot, type GumRoot } from './renderer'
 
 export interface GumProps {
-  width?: number
-  height?: number
+  size?: [number, number]
   className?: string
   style?: CSSProperties
   svgProps?: Record<string, unknown>
 }
 
 export function Gum({
-  width = 500,
-  height = 500,
+  size = [500, 500],
   className,
   style,
   svgProps,
@@ -26,8 +24,7 @@ export function Gum({
     if (host == null) return
 
     const root = createGumRoot({
-      width,
-      height,
+      size,
       svgProps,
       onRender: (svg) => {
         host.innerHTML = svg
@@ -45,8 +42,8 @@ export function Gum({
   }, [])
 
   useLayoutEffect(() => {
-    rootRef.current?.setSize(width, height)
-  }, [width, height])
+    rootRef.current?.setSize(size)
+  }, [size])
 
   useLayoutEffect(() => {
     const root = rootRef.current
