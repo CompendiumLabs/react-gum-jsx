@@ -1,3 +1,5 @@
+import type { Size } from 'gum-jsx'
+
 export type GumHostType = `gum.${string}`
 
 export interface GumHostProps {
@@ -22,9 +24,9 @@ export interface GumHostInstance {
 export type GumHostChild = GumHostInstance | GumHostText
 
 export interface GumContainer {
-  size: [number, number]
+  size: number | Size
   theme?: string
-  svgProps?: Record<string, unknown>
+  props?: Record<string, unknown>
   rootChildren: GumHostChild[]
   currentSvg: string
   renderError?: unknown

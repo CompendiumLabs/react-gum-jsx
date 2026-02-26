@@ -1,20 +1,21 @@
-import React, { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import type { CSSProperties, PropsWithChildren } from 'react'
 import { createGumRoot, type GumRoot } from './renderer'
+import type { Size } from 'gum-jsx'
 
 export interface GumProps {
-  size?: [number, number]
+  size?: number | Size
   className?: string
   style?: CSSProperties
-  svgProps?: Record<string, unknown>
+  props?: Record<string, unknown>
 }
 
 export function Gum({
-  size = [500, 500],
+  size = 500,
   className,
   style,
-  svgProps,
   children,
+  ...props
 }: PropsWithChildren<GumProps>) {
   const hostRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<GumRoot | null>(null)
@@ -25,7 +26,7 @@ export function Gum({
 
     const root = createGumRoot({
       size,
-      svgProps,
+      props: props,
       onRender: (svg) => {
         host.innerHTML = svg
       },
@@ -48,9 +49,9 @@ export function Gum({
   useLayoutEffect(() => {
     const root = rootRef.current
     if (root == null) return
-    root.container.svgProps = svgProps
+    root.container.props = props
     root.render(children)
-  }, [children, svgProps])
+  }, [children, props])
 
-  return <div className={className} style={style} ref={hostRef} />
+  return <div ref={hostRef} className={className} style={style} />
 }

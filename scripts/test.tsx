@@ -12,7 +12,7 @@ function makeScene() {
   </Graph>
 }
 
-const root = createGumRoot({ size: [500, 500] })
+const root = createGumRoot()
 root.render(makeScene())
 
 console.log(root.getSvg())

@@ -3,6 +3,7 @@ import { createContext, type ReactNode } from 'react'
 import { renderContainer } from './runtime'
 import { appendChild, createHostInstance, createHostText, insertBefore, removeChild } from './types'
 import type { GumContainer, GumHostChild, GumHostInstance, GumHostProps, GumHostText, GumHostType } from './types'
+import { is_scalar, is_array, type Size } from 'gum-jsx'
 
 const DEFAULT_EVENT_PRIORITY = 0
 let currentUpdatePriority = DEFAULT_EVENT_PRIORITY
@@ -13,15 +14,15 @@ export interface GumRoot {
   container: GumContainer
   render: (children: ReactNode) => void
   unmount: () => void
-  setSize: (size: [number, number]) => void
+  setSize: (size: number | Size) => void
   setRenderCallback: (fn?: (svg: string) => void) => void
   getSvg: () => string
 }
 
 export interface GumRootOptions {
-  size?: [number, number]
+  size?: number | Size
   theme?: string
-  svgProps?: Record<string, unknown>
+  props?: Record<string, unknown>
   onRender?: (svg: string) => void
 }
 
@@ -162,12 +163,10 @@ const hostConfig: any = {
 const GumReconciler = Reconciler(hostConfig)
 
 function createInternalRoot(container: GumContainer): any {
-  const create = (GumReconciler as any).createContainer
-  try {
-    return create(container, 0, null, false, null, '', console.error, null)
-  } catch {
-    return create(container, 0, null, false, null, '', console.error, null, null)
-  }
+  return GumReconciler.createContainer(
+    container, 0, null, false, null, '',
+    console.error, console.error, console.log, () => {},
+  )
 }
 
 function updateInternalRoot(root: any, children: ReactNode, callback?: () => void): void {
@@ -182,18 +181,28 @@ function updateInternalRoot(root: any, children: ReactNode, callback?: () => voi
   reconcilerAny.updateContainer(children, root, null, callback ?? null)
 }
 
+function sizeEquals(a: number | Size, b: number | Size): boolean {
+  if (is_scalar(a) && is_scalar(b)) return a === b
+  if (is_array(a) && is_array(b)) {
+    const [a0, a1] = a
+    const [b0, b1] = b
+    return a.length === b.length && a0 === b0 && a1 === b1
+  }
+  return false
+}
+
 export function createGumRoot(options: GumRootOptions = {}): GumRoot {
   const {
-    size = [500, 500],
+    size = 500,
     theme,
-    svgProps,
+    props,
     onRender,
   } = options
 
   const container: GumContainer = {
     size,
     theme,
-    svgProps,
+    props,
     rootChildren: [],
     currentSvg: '',
     dirty: true,
@@ -217,10 +226,8 @@ export function createGumRoot(options: GumRootOptions = {}): GumRoot {
       updateInternalRoot(internalRoot, null)
       flushIfDirty(container)
     },
-    setSize(nextSize: [number, number]): void {
-      const [width, height] = container.size
-      const [nextWidth, nextHeight] = nextSize
-      if (width === nextWidth && height === nextHeight) return
+    setSize(nextSize: number | Size): void {
+      if (sizeEquals(container.size, nextSize)) return
       container.size = nextSize
       container.dirty = true
       flushIfDirty(container)
