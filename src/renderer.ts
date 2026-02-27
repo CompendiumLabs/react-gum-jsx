@@ -74,11 +74,11 @@ const hostConfig: any = {
   createTextInstance: (text: string) => createHostText(text),
   appendInitialChild: (parent: GumHostInstance, child: GumHostChild) => appendChild(parent, child),
   finalizeInitialChildren: () => false,
-  prepareUpdate: (instance: GumHostInstance, _type: string, oldProps: GumHostProps, newProps: GumHostProps) => {
+  prepareUpdate: (_instance: GumHostInstance, _type: string, oldProps: GumHostProps, newProps: GumHostProps) => {
     if (isEqualProps(oldProps, newProps)) return null
     return newProps
   },
-  commitUpdate: (instance: GumHostInstance, type: string, oldProps: GumHostProps, newProps: GumHostProps) => {
+  commitUpdate: (instance: GumHostInstance, _type: string, _oldProps: GumHostProps, newProps: GumHostProps) => {
     if (newProps != null) instance.props = newProps
     markRootDirty(instance)
   },
