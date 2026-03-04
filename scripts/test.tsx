@@ -1,5 +1,6 @@
-import { createGumRoot, Square, SymPoints, Graph } from '../src/index'
+import { createGumRoot, GUM } from '../src/index'
 import { setTheme, pi, sin, r2d } from 'gum-jsx'
+const { Square, SymPoints, Graph } = GUM
 
 setTheme('dark')
 

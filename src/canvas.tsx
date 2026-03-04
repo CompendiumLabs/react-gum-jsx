@@ -8,7 +8,7 @@ export interface GumProps {
   size?: number | Size
   className?: string
   style?: CSSProperties
-  props?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 export function Gum({
