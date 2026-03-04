@@ -1,6 +1,7 @@
-import { useLayoutEffect, useRef } from 'react'
-import type { CSSProperties, PropsWithChildren } from 'react'
+import React, { useLayoutEffect, useRef } from 'react'
 import { createGumRoot, type GumRoot } from './renderer'
+
+import type { CSSProperties, PropsWithChildren } from 'react'
 import type { Size } from 'gum-jsx'
 
 export interface GumProps {
