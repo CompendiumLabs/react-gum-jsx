@@ -99,10 +99,10 @@ function toGumChild(child: GumHostChild): GumElement | string | null {
   return instanceToGum(child)
 }
 
-function containerChildren(children: GumHostChild[]): (GumElement | string)[] {
+function containerChildren(children: GumHostChild[]): GumElement[] {
   return children
     .map((child) => toGumChild(child))
-    .filter((c): c is GumElement | string => c != null)
+    .filter((c): c is GumElement => c != null)
 }
 
 export function renderContainer(container: GumContainer): void {
