@@ -51,6 +51,10 @@ export function Gum({
   }, [size])
 
   useLayoutEffect(() => {
+    rootRef.current?.setTheme(theme)
+  }, [theme])
+
+  useLayoutEffect(() => {
     const root = rootRef.current
     if (root == null) return
     root.container.props = props

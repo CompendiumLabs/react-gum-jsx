@@ -15,6 +15,7 @@ export interface GumRoot {
   render: (children: ReactNode) => void
   unmount: () => void
   setSize: (size: number | Size) => void
+  setTheme: (theme?: string) => void
   setRenderCallback: (fn?: (svg: string) => void) => void
   getSvg: () => string
 }
@@ -229,6 +230,12 @@ export function createGumRoot(options: GumRootOptions = {}): GumRoot {
     setSize(nextSize: number | Size): void {
       if (sizeEquals(container.size, nextSize)) return
       container.size = nextSize
+      container.dirty = true
+      flushIfDirty(container)
+    },
+    setTheme(theme?: string): void {
+      if (container.theme === theme) return
+      container.theme = theme
       container.dirty = true
       flushIfDirty(container)
     },
