@@ -8,7 +8,7 @@ function makeScene() {
   return <Graph ylim={[-1.5, 1.5]} padding={0.15} aspect={2}>
     <SymPoints
       fy={sin} xlim={[0, 2*pi]} size={0.5} N={100}
-      shape={(x: number) => <Square rounded spin={r2d*x} />}
+      point-shape={(x: number) => <Square rounded spin={r2d*x} />}
     />
   </Graph>
 }
