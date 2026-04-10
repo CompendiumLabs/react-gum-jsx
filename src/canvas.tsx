@@ -1,4 +1,6 @@
-import React, { useLayoutEffect, useRef } from 'react'
+/** @jsxRuntime automatic */
+/** @jsxImportSource react */
+import { useLayoutEffect, useRef } from 'react'
 import { createGumRoot, type GumRoot } from './renderer'
 
 import type { CSSProperties, PropsWithChildren } from 'react'
