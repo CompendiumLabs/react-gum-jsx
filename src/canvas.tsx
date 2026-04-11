@@ -4,11 +4,11 @@ import { useLayoutEffect, useRef } from 'react'
 import { createGumRoot, type GumRoot } from './renderer'
 
 import type { CSSProperties, PropsWithChildren } from 'react'
-import type { Size } from 'gum-jsx'
+import type { Size, ThemeName } from 'gum-jsx'
 
 export interface GumProps {
   size?: number | Size
-  theme?: string
+  theme?: ThemeName
   className?: string
   style?: CSSProperties
   [key: string]: unknown
