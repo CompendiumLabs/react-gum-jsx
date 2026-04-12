@@ -1,4 +1,4 @@
-// Render a standalone React gum component to SVG or PNG.
+#! /usr/bin/env bun
 
 import { program } from 'commander'
 import { resolve } from 'path'
