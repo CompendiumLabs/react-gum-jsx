@@ -11,12 +11,17 @@
     }
   },
   "scripts": {
-    "test": "bun ./scripts/test.tsx"
+    "test": "bun ./scripts/test.tsx",
+    "gum-react": "bun ./scripts/gum-react.tsx"
+  },
+  "bin": {
+    "gum-react": "./scripts/gum-react.tsx"
   },
   "dependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/react-reconciler": "^0.33.0",
+    "commander": "^14.0.3",
     "gum-jsx": "link:gum-jsx",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
