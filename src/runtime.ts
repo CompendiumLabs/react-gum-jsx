@@ -1,6 +1,6 @@
-import { type ReactElement } from 'react'
+import { Children, type ReactElement, type ReactNode } from 'react'
 
-import { ELEMS, Element as GumElement, Svg, is_function, setTheme } from 'gum-jsx'
+import { ELEMS, Element as GumElement, Svg, is_function, is_string, is_scalar, is_boolean, setTheme } from 'gum-jsx'
 import type { ElementConstructor, Point } from 'gum-jsx'
 
 import type { GumContainer, GumHostChild, GumHostInstance, GumHostProps } from './types'
@@ -45,13 +45,16 @@ function reactElementToGum(el: ReactElement): GumElement | null {
   }
 
   // we don't support fragments here (<>...</>)
-  if (typeof el.type !== 'string') {
+  if (!is_string(el.type)) {
     throw new Error(`Non-standard React element: ${el.type}`)
   }
 
   // here we're expecting some kind of gum primitive
   const ctor = getGumConstructor(el.type)
-  return new ctor(toGumProps(el.props as GumHostProps))
+  const props = toGumProps(el.props as GumHostProps)
+  const children = reactChildrenToGum((el.props as GumHostProps).children as ReactNode)
+  const args = children.length > 0 ? { ...props, children } : props
+  return new ctor(args)
 }
 
 function ensureReactConvert<T>(value: T | ReactElement): T | GumElement | null {
@@ -71,6 +74,22 @@ function toGumValue(value: unknown): unknown {
 
 function toGumKey(key: string): string {
   return key.replace(/-/g, '_')
+}
+
+function reactNodeToGumChild(node: ReactNode): GumElement | string | null {
+  if (node == null || is_boolean(node)) return null
+  if (isReactElement(node)) return reactElementToGum(node)
+  if (is_string(node) || is_scalar(node)) {
+    const text = String(node).trim()
+    return text.length > 0 ? text : null
+  }
+  return null
+}
+
+function reactChildrenToGum(children: ReactNode): (GumElement | string)[] {
+  return Children.toArray(children)
+    .map((child) => reactNodeToGumChild(child))
+    .filter((child): child is GumElement | string => child != null)
 }
 
 function toGumProps(props: GumHostProps): Record<string, unknown> {
