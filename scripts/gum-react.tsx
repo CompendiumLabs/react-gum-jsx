@@ -1,21 +1,62 @@
 #! /usr/bin/env bun
 
+import type { BuildArtifact, BunPlugin } from 'bun'
 import { program } from 'commander'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { dirname, join, resolve } from 'path'
+import type { ComponentType } from 'react'
 
-import { setTheme } from 'gum-jsx'
+import { setTheme, type ThemeName } from 'gum-jsx'
 import { rasterizeSvg, formatImage } from 'gum-jsx/render'
 import { createGumRoot } from 'react-gum-jsx'
 
-const PROVIDED_MODULE_FILTERS = [
+type OutputFormat = 'svg' | 'png' | 'kitty'
+
+interface CliOptions {
+  output?: string
+  format: OutputFormat
+  size: number
+  theme: ThemeName
+  background?: string
+}
+
+interface ComponentProps {
+  theme: ThemeName
+}
+
+interface ComponentModule {
+  default?: ComponentType<ComponentProps>
+}
+
+interface LoadedComponentBundle {
+  Component: ComponentType<ComponentProps>
+  cleanup: () => void
+}
+
+const PROVIDED_MODULE_FILTERS: readonly RegExp[] = [
   /^react-gum-jsx$/,
   /^gum-jsx(?:\/.*)?$/,
   /^react$/,
   /^react\/jsx-runtime$/,
   /^react\/jsx-dev-runtime$/,
 ]
+
+function parseSize(value: string): number {
+  const size = Number.parseInt(value, 10)
+  if (Number.isNaN(size)) throw new Error(`invalid size: ${value}`)
+  return size
+}
+
+function parseTheme(value: string): ThemeName {
+  if (value == 'light' || value == 'dark') return value
+  throw new Error(`invalid theme: ${value}`)
+}
+
+function parseFormat(value: string): OutputFormat {
+  if (value == 'kitty' || value == 'svg' || value == 'png') return value
+  throw new Error(`invalid format: ${value}`)
+}
 
 function saveOutput(out: string | Buffer, encoding: 'utf-8' | 'binary', output?: string) {
   if (output != null) {
@@ -55,7 +96,22 @@ function resolveProvidedModule(path: string, importer: string): string {
   return Bun.resolveSync(path, import.meta.path)
 }
 
-async function loadComponentBundle(input: string) {
+const providedModulesPlugin: BunPlugin = {
+  name: 'gum-react-provided-modules',
+  setup(build) {
+    for (const filter of PROVIDED_MODULE_FILTERS) {
+      build.onResolve({ filter }, args => ({
+        path: resolveProvidedModule(args.path, args.importer),
+      }))
+    }
+  },
+}
+
+function getEntryPoint(outputs: BuildArtifact[]): BuildArtifact | undefined {
+  return outputs.find(output => output.kind == 'entry-point')
+}
+
+async function loadComponentBundle(input: string): Promise<LoadedComponentBundle> {
   const inputPath = resolve(input)
   const outdir = mkdtempSync(join(tmpdir(), 'gum-react-'))
 
@@ -66,16 +122,7 @@ async function loadComponentBundle(input: string) {
     publicPath: `${outdir}/`,
     target: 'bun',
     format: 'esm',
-    plugins: [{
-      name: 'gum-react-provided-modules',
-      setup(build) {
-        for (const filter of PROVIDED_MODULE_FILTERS) {
-          build.onResolve({ filter }, args => ({
-            path: resolveProvidedModule(args.path, args.importer),
-          }))
-        }
-      },
-    }],
+    plugins: [providedModulesPlugin],
   })
 
   if (!result.success) {
@@ -83,10 +130,10 @@ async function loadComponentBundle(input: string) {
     throw new Error(message)
   }
 
-  const entry = result.outputs.find(output => output.kind == 'entry-point')
+  const entry = getEntryPoint(result.outputs)
   if (entry == null) throw new Error(`failed to bundle ${inputPath}`)
 
-  const mod = await import(entry.path)
+  const mod = await import(entry.path) as ComponentModule
   const Component = mod.default
   if (Component == null) throw new Error(`${input} has no default export`)
 
@@ -102,14 +149,16 @@ async function main() {
   program
     .argument('<component>', 'path to component .tsx file')
     .option('-o, --output <output>', 'output file')
-    .option('-f, --format <format>', 'format to output', 'kitty')
-    .option('-s, --size <size>', 'output size in pixels', (value: string) => parseInt(value), 2000)
-    .option('-t, --theme <theme>', 'color theme (light or dark)', 'light')
+    .option('-f, --format <format>', 'format to output', parseFormat, 'kitty')
+    .option('-s, --size <size>', 'output size in pixels', parseSize, 2000)
+    .option('-t, --theme <theme>', 'color theme (light or dark)', parseTheme, 'light')
     .option('-b, --background <background>', 'background color')
     .parse()
 
-  const [input] = program.args
-  let { output, format, size, theme, background } = program.opts()
+  const input = program.args[0]
+  if (input == null) throw new Error('component path is required')
+
+  let { output, format, size, theme, background } = program.opts<CliOptions>()
 
   if (theme == 'light' && background == null) background = 'white'
   if (output != null && format == 'kitty') format = 'png'
