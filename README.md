@@ -1,12 +1,14 @@
 # react-gum-jsx
 
-This is a React adapter for `gum.jsx`. You can use it on the web or in a CLI.
+This is a React adapter for [gum.jsx](https://github.com/CompendiumLabs/gum.jsx). You can use it on the web or in the CLI.
 
 ## Installation
 
-```sh
-bun i -g react-gum-jsx
+```bash
+bun i react-gum-jsx
 ```
+
+This will install the `react-gum-jsx` package and the `gum-react` command. Add a `-g` flag to install globally.
 
 ## Usage
 
