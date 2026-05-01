@@ -4,7 +4,7 @@ import type { BuildArtifact, BunPlugin } from 'bun'
 import { program } from 'commander'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
-import { dirname, join, resolve } from 'path'
+import { dirname, isAbsolute, join, resolve } from 'path'
 import type { ComponentType } from 'react'
 
 import { setTheme, type ThemeName } from 'gum-jsx'
@@ -19,6 +19,7 @@ interface CliOptions {
   size: number
   theme: ThemeName
   background?: string
+  cwd?: string
 }
 
 interface ComponentProps {
@@ -34,6 +35,10 @@ interface LoadedComponentBundle {
   cleanup: () => void
 }
 
+interface BundleOptions {
+  cwd?: string
+}
+
 const PROVIDED_MODULE_FILTERS: readonly RegExp[] = [
   /^react-gum-jsx$/,
   /^gum-jsx(?:\/.*)?$/,
@@ -41,6 +46,8 @@ const PROVIDED_MODULE_FILTERS: readonly RegExp[] = [
   /^react\/jsx-runtime$/,
   /^react\/jsx-dev-runtime$/,
 ]
+const RAW_IMPORT_SUFFIX = '?raw'
+const RAW_IMPORT_NAMESPACE = 'gum-react-raw'
 
 function parseSize(value: string): number {
   const size = Number.parseInt(value, 10)
@@ -107,13 +114,41 @@ const providedModulesPlugin: BunPlugin = {
   },
 }
 
+function resolveRawImport(path: string, importer: string, resolveDir: string, cwd?: string): string {
+  const sourcePath = path.slice(0, -RAW_IMPORT_SUFFIX.length)
+  if (isAbsolute(sourcePath)) return sourcePath
+  if (sourcePath.startsWith('.')) {
+    const baseDir = cwd ?? (resolveDir || dirname(importer))
+    return resolve(baseDir, sourcePath)
+  }
+  return Bun.resolveSync(sourcePath, importer || import.meta.path)
+}
+
+function makeRawImportsPlugin(cwd?: string): BunPlugin {
+  return {
+    name: 'gum-react-raw-imports',
+    setup(build) {
+      build.onResolve({ filter: /\?raw$/ }, args => ({
+        path: resolveRawImport(args.path, args.importer, args.resolveDir, cwd),
+        namespace: RAW_IMPORT_NAMESPACE,
+      }))
+
+      build.onLoad({ filter: /.*/, namespace: RAW_IMPORT_NAMESPACE }, async args => ({
+        contents: await Bun.file(args.path).text(),
+        loader: 'text',
+      }))
+    },
+  }
+}
+
 function getEntryPoint(outputs: BuildArtifact[]): BuildArtifact | undefined {
   return outputs.find(output => output.kind == 'entry-point')
 }
 
-async function loadComponentBundle(input: string): Promise<LoadedComponentBundle> {
+async function loadComponentBundle(input: string, options: BundleOptions = {}): Promise<LoadedComponentBundle> {
   const inputPath = resolve(input)
   const outdir = mkdtempSync(join(tmpdir(), 'gum-react-'))
+  const cwd = options.cwd != null ? resolve(options.cwd) : undefined
 
   const result = await Bun.build({
     entrypoints: [inputPath],
@@ -122,7 +157,7 @@ async function loadComponentBundle(input: string): Promise<LoadedComponentBundle
     publicPath: `${outdir}/`,
     target: 'bun',
     format: 'esm',
-    plugins: [providedModulesPlugin],
+    plugins: [makeRawImportsPlugin(cwd), providedModulesPlugin],
   })
 
   if (!result.success) {
@@ -153,12 +188,13 @@ async function main() {
     .option('-s, --size <size>', 'output size in pixels', parseSize, 2000)
     .option('-t, --theme <theme>', 'color theme (light or dark)', parseTheme, 'light')
     .option('-b, --background <background>', 'background color')
+    .option('-c, --cwd <dir>', 'data directory for relative ?raw imports')
     .parse()
 
   const input = program.args[0]
   if (input == null) throw new Error('component path is required')
 
-  let { output, format, size, theme, background } = program.opts<CliOptions>()
+  let { output, format, size, theme, background, cwd } = program.opts<CliOptions>()
 
   if (theme == 'light' && background == null) background = 'white'
   if (output != null && format == 'kitty') format = 'png'
@@ -172,7 +208,7 @@ async function main() {
   let cleanup = () => {}
 
   try {
-    const bundle = await loadComponentBundle(input)
+    const bundle = await loadComponentBundle(input, { cwd })
     cleanup = bundle.cleanup
 
     const root = createGumRoot({ size })
