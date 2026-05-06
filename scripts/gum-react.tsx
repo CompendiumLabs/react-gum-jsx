@@ -220,7 +220,7 @@ async function main() {
       return
     }
 
-    const png = rasterizeSvg(svg, { background })
+    const png = await rasterizeSvg(svg, { background })
     if (format == 'png') {
       saveOutput(png, 'binary', output)
       return
