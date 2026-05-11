@@ -18,6 +18,7 @@ export interface GumRoot {
   setTheme: (theme?: ThemeName) => void
   setRenderCallback: (fn?: (svg: string) => void) => void
   getSvg: () => string
+  getSize: () => Size
 }
 
 export interface GumRootOptions {
@@ -206,6 +207,7 @@ export function createGumRoot(options: GumRootOptions = {}): GumRoot {
     props,
     rootChildren: [],
     currentSvg: '',
+    currentSize: [ 0, 0 ],
     dirty: true,
     onRender,
   }
@@ -244,6 +246,9 @@ export function createGumRoot(options: GumRootOptions = {}): GumRoot {
     },
     getSvg(): string {
       return container.currentSvg
+    },
+    getSize(): Size {
+      return container.currentSize
     },
   }
 }

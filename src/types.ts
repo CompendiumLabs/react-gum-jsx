@@ -29,6 +29,7 @@ export interface GumContainer {
   props?: Record<string, unknown>
   rootChildren: GumHostChild[]
   currentSvg: string
+  currentSize: Size
   renderError?: unknown
   dirty: boolean
   onRender?: (svg: string) => void

@@ -7,8 +7,8 @@ import { tmpdir } from 'os'
 import { dirname, isAbsolute, join, resolve } from 'path'
 import type { ComponentType } from 'react'
 
-import { setTheme, type ThemeName } from 'gum-jsx'
-import { rasterizeSvg, formatImage } from 'gum-jsx/render'
+import { setTheme, type Size, type ThemeName } from 'gum-jsx'
+import { fitRasterSize, rasterizeSvg, formatImage } from 'gum-jsx/render'
 import { createGumRoot } from 'react-gum-jsx'
 
 type OutputFormat = 'svg' | 'png' | 'kitty'
@@ -17,6 +17,7 @@ interface CliOptions {
   output?: string
   format: OutputFormat
   size: number
+  rasterSize?: Size
   theme: ThemeName
   background?: string
   cwd?: string
@@ -185,7 +186,8 @@ async function main() {
     .argument('<component>', 'path to component .tsx file')
     .option('-o, --output <output>', 'output file')
     .option('-f, --format <format>', 'format to output', parseFormat, 'kitty')
-    .option('-s, --size <size>', 'output size in pixels', parseSize, 2000)
+    .option('-s, --size <size>', 'SVG/viewBox size in pixels', parseSize, 2000)
+    .option('-r, --raster-size <size>', 'max rasterized PNG size', parseSize)
     .option('-t, --theme <theme>', 'color theme (light or dark)', parseTheme, 'light')
     .option('-b, --background <background>', 'background color')
     .option('-c, --cwd <dir>', 'data directory for relative ?raw imports')
@@ -194,7 +196,7 @@ async function main() {
   const input = program.args[0]
   if (input == null) throw new Error('component path is required')
 
-  let { output, format, size, theme, background, cwd } = program.opts<CliOptions>()
+  let { output, format, size, rasterSize, theme, background, cwd } = program.opts<CliOptions>()
 
   if (theme == 'light' && background == null) background = 'white'
   if (output != null && format == 'kitty') format = 'png'
@@ -214,10 +216,17 @@ async function main() {
     const root = createGumRoot({ size })
     root.render(<bundle.Component theme={theme} />)
 
-    const svg = root.getSvg()
+    let svg = root.getSvg()
     if (format == 'svg') {
       saveOutput(svg, 'utf-8', output)
       return
+    }
+
+    if (rasterSize != null) {
+      const [ rasterWidth, rasterHeight ] = fitRasterSize(root.getSize(), rasterSize)
+      const rasterRoot = createGumRoot({ size, props: { width: rasterWidth, height: rasterHeight } })
+      rasterRoot.render(<bundle.Component theme={theme} />)
+      svg = rasterRoot.getSvg()
     }
 
     const png = await rasterizeSvg(svg, { background })

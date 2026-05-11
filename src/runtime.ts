@@ -132,5 +132,6 @@ export function renderContainer(container: GumContainer): void {
   const svgElem = new Svg({ size, children, ...props })
   const svg = svgElem.svg()
   container.currentSvg = svg
+  container.currentSize = svgElem.size
   container.onRender?.(svg)
 }
