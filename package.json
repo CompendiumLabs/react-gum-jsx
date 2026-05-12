@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "description": "A React adapter for gum-jsx",
   "type": "module",
+  "author": "Douglas Hanley",
+  "homepage": "https://github.com/CompendiumLabs/react-gum-jsx",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CompendiumLabs/react-gum-jsx"
+  },
+  "license": "MIT",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
