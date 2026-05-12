@@ -8,7 +8,8 @@ import { dirname, isAbsolute, join, resolve } from 'path'
 import type { ComponentType } from 'react'
 
 import { setTheme, type Size, type ThemeName } from 'gum-jsx'
-import { fitRasterSize, rasterizeSvg, formatImage } from 'gum-jsx/render'
+import { fitSize } from 'gum-jsx/eval'
+import { rasterizeSvg, formatImage } from 'gum-jsx/render'
 import { createGumRoot } from 'react-gum-jsx'
 
 type OutputFormat = 'svg' | 'png' | 'kitty'
@@ -223,7 +224,7 @@ async function main() {
     }
 
     if (rasterSize != null) {
-      const [ rasterWidth, rasterHeight ] = fitRasterSize(root.getSize(), rasterSize)
+      const [ rasterWidth, rasterHeight ] = fitSize(root.getSize(), rasterSize)
       const rasterRoot = createGumRoot({ size, props: { width: rasterWidth, height: rasterHeight } })
       rasterRoot.render(<bundle.Component theme={theme} />)
       svg = rasterRoot.getSvg()

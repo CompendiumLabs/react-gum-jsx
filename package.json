@@ -1,6 +1,7 @@
 {
   "name": "react-gum-jsx",
-  "private": true,
+  "version": "0.1.0",
+  "description": "A React adapter for gum-jsx",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
