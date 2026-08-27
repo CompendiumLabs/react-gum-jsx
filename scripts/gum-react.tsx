@@ -2,25 +2,20 @@
 
 import type { BuildArtifact, BunPlugin } from 'bun'
 import { program } from 'commander'
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { dirname, isAbsolute, join, resolve } from 'path'
 import type { ComponentType } from 'react'
 
-import { setTheme, type Size, type ThemeName } from 'gum-jsx'
-import { fitSize } from 'gum-jsx/eval'
-import { rasterizeSvg, formatImage } from 'gum-jsx/render'
+import { setTheme, type ThemeName } from '@gum-jsx/core'
 import { createGumRoot } from 'react-gum-jsx'
 
-type OutputFormat = 'svg' | 'png' | 'kitty'
+// registers the Latex/Tex elements with core so components can use them
+import '@gum-jsx/math'
 
 interface CliOptions {
-  output?: string
-  format: OutputFormat
   size: number
-  rasterSize?: Size
   theme: ThemeName
-  background?: string
   cwd?: string
 }
 
@@ -41,13 +36,16 @@ interface BundleOptions {
   cwd?: string
 }
 
-const PROVIDED_MODULE_FILTERS: readonly RegExp[] = [
-  /^react-gum-jsx$/,
-  /^gum-jsx(?:\/.*)?$/,
-  /^react$/,
-  /^react\/jsx-runtime$/,
-  /^react\/jsx-dev-runtime$/,
+// packages the CLI has already loaded — a component must share these instances
+// rather than get a bundled copy of its own, so that registerElements and
+// setTheme calls it makes land in the registry the renderer actually reads
+const PROVIDED_PACKAGES: readonly string[] = [
+  'react',
+  'react-gum-jsx',
+  '@gum-jsx/core',
+  '@gum-jsx/math',
 ]
+const PROVIDED_FILTER = new RegExp(`^(${PROVIDED_PACKAGES.map(name => name.replace('/', '\\/')).join('|')})(?:\\/.*)?$`)
 const RAW_IMPORT_SUFFIX = '?raw'
 const RAW_IMPORT_NAMESPACE = 'gum-react-raw'
 
@@ -62,57 +60,43 @@ function parseTheme(value: string): ThemeName {
   throw new Error(`invalid theme: ${value}`)
 }
 
-function parseFormat(value: string): OutputFormat {
-  if (value == 'kitty' || value == 'svg' || value == 'png') return value
-  throw new Error(`invalid format: ${value}`)
-}
-
-function saveOutput(out: string | Buffer, encoding: 'utf-8' | 'binary', output?: string) {
-  if (output != null) {
-    writeFileSync(output, out, encoding)
-  } else {
-    console.log(out)
-  }
-}
-
-function getPackageName(path: string): string {
-  if (path.startsWith('@')) {
-    const [scope = '', name = ''] = path.split('/')
-    return `${scope}/${name}`
-  }
-  return path.split('/')[0] ?? path
-}
-
-function hasLocalPackage(path: string, importer: string): boolean {
-  const packageName = getPackageName(path)
-  let dir = importer == '' ? process.cwd() : dirname(importer)
+function findPackageRoot(name: string): string | null {
+  let dir = import.meta.dir
 
   while (true) {
-    if (existsSync(join(dir, 'node_modules', packageName))) return true
+    const candidate = join(dir, 'node_modules', name)
+    if (existsSync(candidate)) return candidate
 
     const parent = dirname(dir)
-    if (parent == dir) return false
+    if (parent == dir) return null
     dir = parent
   }
 }
 
-function resolveProvidedModule(path: string, importer: string): string {
-  if (hasLocalPackage(path, importer)) {
-    return Bun.resolveSync(path, importer)
-  }
+// resolve against the CLI's own install rather than the component's project:
+// the renderer doing the work is ours, so the component has to share our React
+// and our element registry for hooks and registerElements to behave
+function providedPackageRoot(name: string): string | null {
+  if (name == 'react-gum-jsx') return resolve(import.meta.dir, '..')
+  return findPackageRoot(name)
+}
 
-  if (path == 'react-gum-jsx') return resolve(import.meta.dir, '../src/index.ts')
-  return Bun.resolveSync(path, import.meta.path)
+// Bun emits the original specifier for external imports, so the bundle needs a
+// node_modules of its own for them to resolve against at runtime
+function linkProvidedPackages(outdir: string): void {
+  for (const name of PROVIDED_PACKAGES) {
+    const root = providedPackageRoot(name)
+    if (root == null) continue
+    const link = join(outdir, 'node_modules', name)
+    mkdirSync(dirname(link), { recursive: true })
+    symlinkSync(root, link, 'dir')
+  }
 }
 
 const providedModulesPlugin: BunPlugin = {
   name: 'gum-react-provided-modules',
   setup(build) {
-    for (const filter of PROVIDED_MODULE_FILTERS) {
-      build.onResolve({ filter }, args => ({
-        path: resolveProvidedModule(args.path, args.importer),
-      }))
-    }
+    build.onResolve({ filter: PROVIDED_FILTER }, args => ({ path: args.path, external: true }))
   },
 }
 
@@ -151,93 +135,63 @@ async function loadComponentBundle(input: string, options: BundleOptions = {}): 
   const inputPath = resolve(input)
   const outdir = mkdtempSync(join(tmpdir(), 'gum-react-'))
   const cwd = options.cwd != null ? resolve(options.cwd) : undefined
+  const cleanup = () => rmSync(outdir, { recursive: true, force: true })
 
-  const result = await Bun.build({
-    entrypoints: [inputPath],
-    outdir,
-    // Use absolute asset paths so bundled font imports keep working outside the source project.
-    publicPath: `${outdir}/`,
-    target: 'bun',
-    format: 'esm',
-    plugins: [makeRawImportsPlugin(cwd), providedModulesPlugin],
-  })
+  try {
+    linkProvidedPackages(outdir)
 
-  if (!result.success) {
-    const message = result.logs.map(log => log.message).join('\n') || `failed to bundle ${inputPath}`
-    throw new Error(message)
-  }
+    const result = await Bun.build({
+      entrypoints: [inputPath],
+      outdir,
+      // Use absolute asset paths so bundled font imports keep working outside the source project.
+      publicPath: `${outdir}/`,
+      target: 'bun',
+      format: 'esm',
+      plugins: [makeRawImportsPlugin(cwd), providedModulesPlugin],
+    })
 
-  const entry = getEntryPoint(result.outputs)
-  if (entry == null) throw new Error(`failed to bundle ${inputPath}`)
+    if (!result.success) {
+      const message = result.logs.map(log => log.message).join('\n') || `failed to bundle ${inputPath}`
+      throw new Error(message)
+    }
 
-  const mod = await import(entry.path) as ComponentModule
-  const Component = mod.default
-  if (Component == null) throw new Error(`${input} has no default export`)
+    const entry = getEntryPoint(result.outputs)
+    if (entry == null) throw new Error(`failed to bundle ${inputPath}`)
 
-  return {
-    Component,
-    cleanup() {
-      rmSync(outdir, { recursive: true, force: true })
-    },
+    const mod = await import(entry.path) as ComponentModule
+    const Component = mod.default
+    if (Component == null) throw new Error(`${input} has no default export`)
+
+    return { Component, cleanup }
+  } catch (error) {
+    cleanup()
+    throw error
   }
 }
 
 async function main() {
   program
     .argument('<component>', 'path to component .tsx file')
-    .option('-o, --output <output>', 'output file')
-    .option('-f, --format <format>', 'format to output', parseFormat, 'kitty')
     .option('-s, --size <size>', 'SVG/viewBox size in pixels', parseSize, 2000)
-    .option('-r, --raster-size <size>', 'max rasterized PNG size', parseSize)
     .option('-t, --theme <theme>', 'color theme (light or dark)', parseTheme, 'light')
-    .option('-b, --background <background>', 'background color')
     .option('-c, --cwd <dir>', 'data directory for relative ?raw imports')
     .parse()
 
   const input = program.args[0]
   if (input == null) throw new Error('component path is required')
 
-  let { output, format, size, rasterSize, theme, background, cwd } = program.opts<CliOptions>()
-
-  if (theme == 'light' && background == null) background = 'white'
-  if (output != null && format == 'kitty') format = 'png'
-  if (output != null && format == null) {
-    if (output.endsWith('.svg')) format = 'svg'
-    if (output.endsWith('.png')) format = 'png'
-  }
-
+  const { size, theme, cwd } = program.opts<CliOptions>()
   setTheme(theme)
-
   let cleanup = () => {}
 
   try {
     const bundle = await loadComponentBundle(input, { cwd })
     cleanup = bundle.cleanup
 
-    const root = createGumRoot({ size })
+    const root = createGumRoot({ size, theme })
     root.render(<bundle.Component theme={theme} />)
 
-    let svg = root.getSvg()
-    if (format == 'svg') {
-      saveOutput(svg, 'utf-8', output)
-      return
-    }
-
-    if (rasterSize != null) {
-      const [ rasterWidth, rasterHeight ] = fitSize(root.getSize(), rasterSize)
-      const rasterRoot = createGumRoot({ size, props: { width: rasterWidth, height: rasterHeight } })
-      rasterRoot.render(<bundle.Component theme={theme} />)
-      svg = rasterRoot.getSvg()
-    }
-
-    const png = await rasterizeSvg(svg, { background })
-    if (format == 'png') {
-      saveOutput(png, 'binary', output)
-      return
-    }
-
-    const kitty = formatImage(png)
-    saveOutput(kitty, 'utf-8', output)
+    console.log(root.getSvg())
   } finally {
     cleanup()
   }

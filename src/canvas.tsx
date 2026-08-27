@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef } from 'react'
 import { createGumRoot, type GumRoot } from './renderer'
 
 import type { CSSProperties, PropsWithChildren } from 'react'
-import type { Size, ThemeName } from 'gum-jsx'
+import type { Size, ThemeName } from '@gum-jsx/core'
 
 export interface GumProps {
   size?: number | Size
@@ -59,7 +59,7 @@ export function Gum({
   useLayoutEffect(() => {
     const root = rootRef.current
     if (root == null) return
-    root.container.props = props
+    root.setProps(props)
     root.render(children)
   }, [children, props])
 

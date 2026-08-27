@@ -1,6 +1,6 @@
 # react-gum-jsx
 
-A custom React renderer for [gum-jsx](https://github.com/CompendiumLabs/gum.jsx), a vector graphics library. Uses `react-reconciler` to let you compose graphics with JSX and render to SVG.
+A custom React renderer for [gum.jsx](https://github.com/CompendiumLabs/gum.jsx), a vector graphics library. Uses `react-reconciler` to let you compose graphics with JSX and render to SVG.
 
 ## Architecture
 
@@ -12,7 +12,7 @@ GumHostInstance Tree (virtual DOM in renderer.ts)
 Gum Element Tree (runtime.ts converts via instanceToGum)
     ↓ .svg()
 SVG String
-    ↓ canvas.tsx sets innerHTML (or printed to terminal via gum-react CLI)
+    ↓ canvas.tsx sets innerHTML (or printed to stdout via gum-react CLI)
 <div>
 ```
 
@@ -22,16 +22,18 @@ SVG String
 |---|---|
 | `src/index.ts` | Public API exports (`createGumRoot`, `Gum`, `GUM`) |
 | `src/types.ts` | Virtual host tree types (`GumHostInstance`, `GumHostText`, `GumContainer`) and tree manipulation helpers |
-| `src/primitives.tsx` | Single `GUM` record that maps every `ELEMS` key from gum-jsx to a React component wrapper. Destructure the primitives you need. |
+| `src/primitives.tsx` | Single `GUM` record that maps every `ELEMS` key from `@gum-jsx/core` to a React component wrapper. Destructure the primitives you need. |
 | `src/canvas.tsx` | `<Gum>` component — the boundary between React DOM and the custom renderer |
-| `src/runtime.ts` | Converts the virtual host tree into actual gum-jsx `Element` instances and renders to SVG |
+| `src/runtime.ts` | Converts the virtual host tree into actual gum.jsx `Element` instances and renders to SVG |
 | `src/renderer.ts` | `react-reconciler` host config and `createGumRoot()` factory |
-| `scripts/test.tsx` | Smoke test (run with `bun test`) |
-| `scripts/gum-react.tsx` | CLI that renders a `.tsx` component file to SVG/PNG/kitty (shipped as the `gum-react` bin) |
+| `scripts/test.tsx` | Smoke test (run with `bun run test`) |
+| `scripts/gum-react.tsx` | CLI that renders a `.tsx` component file to SVG on stdout (shipped as the `gum-react` bin) |
+| `test/component.tsx` | Shared fixture component used by the test suite and handy for manual CLI runs |
 
 ### Key patterns
 
-- **Primitives as one record**: `GUM` is built at module load from `Object.keys(ELEMS)`. Each entry is a thin wrapper that calls `createElement(name, props, children)`. Users destructure (`const { Circle, Plot } = GUM`) rather than importing each component.
+- **Primitives as one record**: `GUM` is a `Proxy` over the live `ELEMS` registry. Each entry is a thin wrapper that calls `createElement(name, props, children)`, memoized per name. Users destructure (`const { Circle, Plot } = GUM`) rather than importing each component.
+- **Live registry**: `ELEMS` starts empty and is filled by `registerElements` — `@gum-jsx/core` registers its elements on import, add-ons like `@gum-jsx/math` register theirs when *they* are imported. Because `GUM` resolves names on access rather than snapshotting keys at module load, add-on elements (`Latex`, `Tex`, …) appear as soon as the add-on is imported, and import order does not matter. Never cache `Object.keys(ELEMS)` at module scope.
 - **Type prefixing**: React elements carry bare names (`Rectangle`), normalized to `gum.Rectangle` in the host tree, then stripped back when constructing gum elements via `ELEMS[name]`.
 - **Dirty flag batching**: Mutations mark the container dirty; `resetAfterCommit` flushes once per commit batch, avoiding redundant renders.
 - **Parent-linked tree**: Every child holds a parent reference, enabling efficient dirty propagation up to the root.
@@ -85,20 +87,20 @@ const svg = root.getSvg()
 console.log(svg)
 ```
 
-`createGumRoot(options)` accepts `{ size, theme, props, onRender }` and returns `{ container, render, unmount, setSize, setTheme, setRenderCallback, getSvg }`.
+`createGumRoot(options)` accepts `{ size, theme, props, onRender }` and returns `{ container, render, unmount, setSize, setTheme, setProps, setRenderCallback, getSvg, getSize }`.
 
 ### `gum-react` CLI
 
-The package ships a `gum-react` binary (`scripts/gum-react.tsx`) that renders a React component file to the terminal or disk. The target `.tsx` file must `export default` a component (typically zero-arg, optionally taking `{ theme }`).
+The package ships a `gum-react` binary (`scripts/gum-react.tsx`) that renders a React component file to SVG on stdout. The target `.tsx` file must `export default` a component (typically zero-arg, optionally taking `{ theme }`). It does SVG only — pipe it somewhere else for rasterization.
 
 ```sh
-bun gum-react path/to/component.tsx          # prints kitty image to stdout
-bun gum-react component.tsx -o out.svg       # writes SVG
-bun gum-react component.tsx -o out.png       # writes rasterized PNG
-bun gum-react component.tsx -f svg           # prints raw SVG
+bun gum-react path/to/component.tsx
+bun gum-react component.tsx -s 800 -t dark > out.svg
 ```
 
-Options: `-o/--output <file>`, `-f/--format <kitty|svg|png>` (default `kitty`), `-s/--size <px>` (default `2000`), `-t/--theme <light|dark>` (default `light`), `-b/--background <color>` (auto-set to `white` for light theme). Output format is auto-detected from the file extension when `-o` is given. Rasterization and kitty formatting come from `gum-jsx/render`.
+Options: `-s/--size <px>` (default `2000`), `-t/--theme <light|dark>` (default `light`), `-c/--cwd <dir>` (base for relative `?raw` imports).
+
+The CLI bundles the component with `Bun.build`, but treats `react`, `react-gum-jsx` and the `@gum-jsx/*` packages as **external** and symlinks them into the bundle's temp `node_modules` (see `linkProvidedPackages`). This matters: it is what makes a component's `registerElements` calls and `setTheme` land in the same registry the renderer reads from, instead of in a private bundled copy. The CLI also imports `@gum-jsx/math` itself, so `<Latex>` works without the component asking for it.
 
 ## Stack
 
@@ -106,15 +108,18 @@ Options: `-o/--output <file>`, `-f/--format <kitty|svg|png>` (default `kitty`), 
 - **Language**: TypeScript (strict mode, ESM-only)
 - **React**: 19.x with `react-reconciler` 0.33.x
 - **CLI**: `commander` 14.x
-- **Graphics**: gum-jsx (linked locally via `"gum-jsx": "link:gum-jsx"`)
+- **Graphics**: `@gum-jsx/core`, plus `@gum-jsx/math` (Latex), linked locally via `link:`
 
-## gum-jsx reference
+## gum.jsx reference
 
-gum-jsx lives in `node_modules/gum-jsx/`. Key things to know:
+gum.jsx is split into scoped packages under `node_modules/@gum-jsx/`. Key things to know:
 
-- The full set of primitives is driven by `ELEMS` — whatever gum-jsx exports there is automatically available on `GUM`.
-- Categories include layout (Box, Frame, Stack, Grid), geometry (Line, Circle, Rectangle, Path), text (Span, Text, Latex), plotting (Plot, Axis, Legend, Graph), network (Node, Edge, Network), and presentation (Slide).
+- `@gum-jsx/core` is the graphics library proper: elements, layout, theming, `evaluateGum` (under `@gum-jsx/core/eval`). Importing it registers the core elements.
+- `@gum-jsx/math` adds the LaTeX elements (`Latex`, `Tex`, …) and KaTeX fonts by calling `registerElements` on import. It is a side-effect import — there is nothing to wire up here beyond importing it.
+- `@gum-jsx/node` provides `rasterizeSvg` and `formatImage` for PNG/kitty output. This repo does not use it — the CLI emits SVG only — and it pulls in the native `canvas` package, so don't add it back without a reason.
+- `gum-jsx` (unscoped) is the batteries-included umbrella that re-exports all of the above. This repo depends on the pieces it needs instead.
+- The full set of primitives is driven by `ELEMS` — whatever is registered there is automatically available on `GUM`.
+- Categories include layout (Box, Frame, Stack, Grid), geometry (Line, Circle, Rectangle, Path), text (Span, Text), plotting (Plot, Axis, Legend, Graph), network (Node, Edge, Network), and presentation (Slide).
 - `Element` is the base class; `Group` extends it with children support. Rendering calls `.svg()` to produce an SVG string.
 - Themes are set via `setTheme('light' | 'dark')`. `renderContainer` applies the container's theme before each render.
-- Helpers like `pi`, `sin`, `r2d`, and color constants (`blue`, `red`, ...) are imported directly from `gum-jsx`, not re-exported here.
-- `gum-jsx/render` provides `rasterizeSvg` and `formatImage` (used by the `gum-react` CLI for PNG/kitty output).
+- Helpers like `pi`, `sin`, `r2d`, and color constants (`blue`, `red`, ...) are imported directly from `@gum-jsx/core`, not re-exported here.

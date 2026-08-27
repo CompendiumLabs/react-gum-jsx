@@ -1,4 +1,4 @@
-import type { Size, ThemeName } from 'gum-jsx'
+import type { Size, ThemeName } from '@gum-jsx/core'
 
 export type GumHostType = `gum.${string}`
 

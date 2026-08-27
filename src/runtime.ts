@@ -1,7 +1,7 @@
 import { Children, type ReactElement, type ReactNode } from 'react'
 
-import { ELEMS, Element as GumElement, Svg, is_function, is_string, is_scalar, is_boolean, setTheme } from 'gum-jsx'
-import type { ElementConstructor, Point } from 'gum-jsx'
+import { ELEMS, Element as GumElement, Svg, is_function, is_string, is_scalar, is_boolean, setTheme } from '@gum-jsx/core'
+import type { ElementConstructor } from '@gum-jsx/core'
 
 import type { GumContainer, GumHostChild, GumHostInstance, GumHostProps } from './types'
 
@@ -126,7 +126,7 @@ function containerChildren(children: GumHostChild[]): GumElement[] {
 
 export function renderContainer(container: GumContainer): void {
   if (container.theme != null) setTheme(container.theme)
-  const size = container.size as Point
+  const size = container.size
   const props = container.props ?? {}
   const children = containerChildren(container.rootChildren)
   const svgElem = new Svg({ size, children, ...props })

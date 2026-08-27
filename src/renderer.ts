@@ -3,7 +3,7 @@ import { createContext, type ReactNode } from 'react'
 import { renderContainer } from './runtime'
 import { appendChild, createHostInstance, createHostText, insertBefore, removeChild } from './types'
 import type { GumContainer, GumHostChild, GumHostInstance, GumHostProps, GumHostText, GumHostType } from './types'
-import { is_scalar, is_array, type Size, type ThemeName } from 'gum-jsx'
+import { is_scalar, is_array, type Size, type ThemeName } from '@gum-jsx/core'
 
 const DEFAULT_EVENT_PRIORITY = 0
 let currentUpdatePriority = DEFAULT_EVENT_PRIORITY
@@ -16,6 +16,7 @@ export interface GumRoot {
   unmount: () => void
   setSize: (size: number | Size) => void
   setTheme: (theme?: ThemeName) => void
+  setProps: (props?: Record<string, unknown>) => void
   setRenderCallback: (fn?: (svg: string) => void) => void
   getSvg: () => string
   getSize: () => Size
@@ -238,6 +239,12 @@ export function createGumRoot(options: GumRootOptions = {}): GumRoot {
     setTheme(theme?: ThemeName): void {
       if (container.theme === theme) return
       container.theme = theme
+      container.dirty = true
+      flushIfDirty(container)
+    },
+    setProps(nextProps?: Record<string, unknown>): void {
+      if (isEqualProps(container.props ?? {}, nextProps ?? {})) return
+      container.props = nextProps
       container.dirty = true
       flushIfDirty(container)
     },

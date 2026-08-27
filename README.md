@@ -15,9 +15,9 @@ This will install the `react-gum-jsx` package and the `gum-react` command. Add a
 To use Gum in a regular React setting, make a standalone component. It's very similar to what you would pass to `evaluateGum` but as a default export:
 
 ```tsx
-import { blue, red } from 'gum-jsx'
+import { blue, red } from '@gum-jsx/core'
 import { GUM } from 'react-gum-jsx'
-const { Gum, Frame, HStack, Square, Circle, Text } = GUM
+const { Frame, HStack, Square, Circle, Text } = GUM
 
 export default function Demo() {
   return <Frame padding margin rounded>
@@ -30,7 +30,22 @@ export default function Demo() {
 }
 ```
 
-In a CLI setting, you can use the `gum-react` command to render a React component to SVG, PNG, or kitty. This takes very similar arguments to the regular `gum` command.
+`GUM` tracks the gum.jsx element registry as it is filled in, so any add-on you import shows up on it. Import `@gum-jsx/math` once and `GUM.Latex` is there:
+
+```tsx
+import '@gum-jsx/math'
+import { GUM } from 'react-gum-jsx'
+const { Latex } = GUM
+```
+
+In a CLI setting, you can use the `gum-react` command to render a React component to SVG on stdout:
+
+```bash
+gum-react component.tsx
+gum-react component.tsx -s 800 -t dark > out.svg
+```
+
+It accepts `-s/--size`, `-t/--theme` and `-c/--cwd` (base directory for relative `?raw` imports). The math elements are always available here — the CLI loads them for you.
 
 If you are in a web setting, you can use the `<Gum>` component to manage the DOM. This accepts very similar arguments to `evaluateGum` itself. For example:
 
