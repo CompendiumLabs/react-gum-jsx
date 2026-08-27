@@ -1,5 +1,5 @@
 {
-  "name": "gum-jsx-react",
+  "name": "@gum-jsx/react",
   "version": "0.1.0",
   "description": "A React adapter for gum-jsx",
   "type": "module",
