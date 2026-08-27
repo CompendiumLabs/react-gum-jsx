@@ -31,20 +31,33 @@ function withTempDir(prefix: string, fn: (dir: string) => void) {
 //
 
 // must run before anything pulls in an add-on: GUM resolves names against the
-// live ELEMS registry rather than snapshotting it at module load
+// live ELEMS registry at render time rather than snapshotting it at module load
 async function assertRegistryIsLive() {
   assert.ok(Object.keys(GUM).length > 0, 'GUM should expose the core elements')
   assert.equal(typeof GUM.Circle, 'function')
-  assert.equal(GUM.NotAnElement, undefined, 'unregistered names should be undefined')
+
+  // unknown names still hand out a wrapper (so consumers can destructure before
+  // an add-on has registered), but are not enumerated and fail at render time
+  assert.equal(typeof GUM.NotAnElement, 'function')
+  assert.ok(!('NotAnElement' in GUM), 'unregistered names should not be reported as present')
+  assert.throws(() => {
+    const NotAnElement = GUM.NotAnElement
+    createGumRoot().render(<NotAnElement />)
+  }, /Unsupported gum primitive: NotAnElement/)
 
   const before = Object.keys(GUM).length
   assert.ok(!('Latex' in GUM), 'Latex should not be registered before @gum-jsx/math loads')
+  const { Latex } = GUM // destructured before the add-on loads
 
   await import('@gum-jsx/math')
 
   assert.ok('Latex' in GUM, 'registerElements should be picked up after module load')
   assert.equal(typeof GUM.Latex, 'function')
   assert.ok(Object.keys(GUM).length > before, 'add-on elements should show up in Object.keys')
+
+  const root = createGumRoot()
+  root.render(<Latex>x^2</Latex>)
+  assert.ok(root.getSvg().includes('<svg'), 'an element destructured before registration should render after it')
 }
 
 //

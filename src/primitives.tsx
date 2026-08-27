@@ -12,12 +12,12 @@ function createPrimitive(name: string): GumPrimitiveComponent {
 }
 
 // ELEMS is mutable — core fills it on import and add-ons such as @gum-jsx/math
-// call registerElements later — so resolve wrappers on demand rather than
-// snapshotting the keys at module load time
+// call registerElements later (possibly after a top-level await, so even after
+// a consumer has destructured GUM at module scope) — so wrappers are handed out
+// for any name and the constructor is only looked up at render time
 const CACHE = new Map<string, GumPrimitiveComponent>()
 
-function getPrimitive(name: string): GumPrimitiveComponent | undefined {
-  if (!(name in ELEMS)) return undefined
+function getPrimitive(name: string): GumPrimitiveComponent {
   let prim = CACHE.get(name)
   if (prim == null) {
     prim = createPrimitive(name)
