@@ -8,13 +8,14 @@ import { dirname, isAbsolute, join, resolve } from 'path'
 import type { ComponentType } from 'react'
 
 import { setTheme, type ThemeName } from '@gum-jsx/core'
-import { createGumRoot } from 'react-gum-jsx'
+import { createGumRoot } from '@gum-jsx/react'
 
 // registers the Latex/Tex elements with core so components can use them
 import '@gum-jsx/math'
 
 interface CliOptions {
   size: number
+  unitSize?: number
   theme: ThemeName
   cwd?: string
 }
@@ -41,7 +42,7 @@ interface BundleOptions {
 // setTheme calls it makes land in the registry the renderer actually reads
 const PROVIDED_PACKAGES: readonly string[] = [
   'react',
-  'react-gum-jsx',
+  '@gum-jsx/react',
   '@gum-jsx/core',
   '@gum-jsx/math',
 ]
@@ -77,7 +78,7 @@ function findPackageRoot(name: string): string | null {
 // the renderer doing the work is ours, so the component has to share our React
 // and our element registry for hooks and registerElements to behave
 function providedPackageRoot(name: string): string | null {
-  if (name == 'react-gum-jsx') return resolve(import.meta.dir, '..')
+  if (name == '@gum-jsx/react') return resolve(import.meta.dir, '..')
   return findPackageRoot(name)
 }
 
@@ -173,6 +174,7 @@ async function main() {
   program
     .argument('<component>', 'path to component .tsx file')
     .option('-s, --size <size>', 'SVG/viewBox size in pixels', parseSize, 2000)
+    .option('-u, --unit-size <size>', 'image size at which stroke_width = 1 is one pixel (default: 1000)', parseSize)
     .option('-t, --theme <theme>', 'color theme (light or dark)', parseTheme, 'light')
     .option('-c, --cwd <dir>', 'data directory for relative ?raw imports')
     .parse()
@@ -180,7 +182,7 @@ async function main() {
   const input = program.args[0]
   if (input == null) throw new Error('component path is required')
 
-  const { size, theme, cwd } = program.opts<CliOptions>()
+  const { size, unitSize, theme, cwd } = program.opts<CliOptions>()
   setTheme(theme)
   let cleanup = () => {}
 
@@ -188,7 +190,8 @@ async function main() {
     const bundle = await loadComponentBundle(input, { cwd })
     cleanup = bundle.cleanup
 
-    const root = createGumRoot({ size, theme })
+    const props = unitSize != null ? { unit_size: unitSize } : undefined
+    const root = createGumRoot({ size, theme, props })
     root.render(<bundle.Component theme={theme} />)
 
     console.log(root.getSvg())

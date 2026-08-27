@@ -1,4 +1,4 @@
-# react-gum-jsx
+# @gum-jsx/react
 
 A custom React renderer for [gum.jsx](https://github.com/CompendiumLabs/gum.jsx), a vector graphics library. Uses `react-reconciler` to let you compose graphics with JSX and render to SVG.
 
@@ -48,7 +48,7 @@ SVG String
 ### As a React component (inside a React DOM app)
 
 ```tsx
-import { Gum, GUM } from 'react-gum-jsx'
+import { Gum, GUM } from '@gum-jsx/react'
 const { HStack, Rectangle, Circle, Text } = GUM
 
 function Demo() {
@@ -62,12 +62,12 @@ function Demo() {
 }
 ```
 
-The `<Gum>` component accepts `size` (number or `[w, h]`), `theme` (`'light' | 'dark'`, default `'light'`), plus `className`/`style` for the host `<div>`. Any extra props are forwarded as top-level `Svg` props.
+The `<Gum>` component accepts `size` (number or `[w, h]`), `theme` (`'light' | 'dark'`, default `'light'`), plus `className`/`style` for the host `<div>`. Any extra props are forwarded as top-level `Svg` props, with the same kebab-to-snake conversion as element props (e.g. `unit-size={32}` or `unit_size={32}` for pixel-sized strokes on a 32px icon).
 
 ### Headless (no DOM)
 
 ```tsx
-import { createGumRoot, GUM } from 'react-gum-jsx'
+import { createGumRoot, GUM } from '@gum-jsx/react'
 const { HStack, Rectangle, Circle, Text } = GUM
 
 function Demo() {
@@ -98,9 +98,9 @@ bun gum-react path/to/component.tsx
 bun gum-react component.tsx -s 800 -t dark > out.svg
 ```
 
-Options: `-s/--size <px>` (default `2000`), `-t/--theme <light|dark>` (default `light`), `-c/--cwd <dir>` (base for relative `?raw` imports).
+Options: `-s/--size <px>` (default `2000`), `-u/--unit-size <px>` (the image size at which `stroke_width = 1` is one pixel, default `1000`; set it to the size for pixel strokes on a small icon), `-t/--theme <light|dark>` (default `light`), `-c/--cwd <dir>` (base for relative `?raw` imports).
 
-The CLI bundles the component with `Bun.build`, but treats `react`, `react-gum-jsx` and the `@gum-jsx/*` packages as **external** and symlinks them into the bundle's temp `node_modules` (see `linkProvidedPackages`). This matters: it is what makes a component's `registerElements` calls and `setTheme` land in the same registry the renderer reads from, instead of in a private bundled copy. The CLI also imports `@gum-jsx/math` itself, so `<Latex>` works without the component asking for it.
+The CLI bundles the component with `Bun.build`, but treats `react`, `@gum-jsx/react` and the `@gum-jsx/*` packages as **external** and symlinks them into the bundle's temp `node_modules` (see `linkProvidedPackages`). This matters: it is what makes a component's `registerElements` calls and `setTheme` land in the same registry the renderer reads from, instead of in a private bundled copy. The CLI also imports `@gum-jsx/math` itself, so `<Latex>` works without the component asking for it.
 
 ## Stack
 

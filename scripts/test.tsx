@@ -118,6 +118,33 @@ function assertCliOutput() {
   assert.ok(result.stdout.includes('width="400"'), '--size should set the svg dimensions')
 }
 
+// the stroke unit scales with the image relative to unit_size, so at size 32
+// strokes are hairlines unless the image is declared as designed at 32
+function assertUnitSize() {
+  const { Circle } = GUM
+  const widths = (svg: string) => (svg.match(/stroke-width="([^"]*)"/g) ?? []).map(s => Number(s.slice(14, -1)))
+
+  const scaled = createGumRoot({ size: 32 })
+  scaled.render(<Circle stroke_width={2} />)
+  assert.deepEqual(widths(scaled.getSvg()), [0.03, 0.06], 'strokes should scale down with the image by default')
+
+  const pixel = createGumRoot({ size: 32, props: { unit_size: 32 } })
+  pixel.render(<Circle stroke_width={2} />)
+  assert.deepEqual(widths(pixel.getSvg()), [1, 2], 'unit_size equal to the size should give pixel strokes')
+
+  pixel.setSize(64)
+  assert.deepEqual(widths(pixel.getSvg()), [2, 4], 'a larger render should scale the strokes up')
+
+  // root props take the same kebab-to-snake conversion as element props
+  const kebab = createGumRoot({ size: 32, props: { 'unit-size': 32 } })
+  kebab.render(<Circle stroke_width={2} />)
+  assert.deepEqual(widths(kebab.getSvg()), [1, 2], 'kebab-case root props should reach Svg')
+
+  const result = runCli(['test/component.tsx', '-s', '32', '-u', '32'])
+  assert.equal(result.status, 0, result.stderr || result.stdout)
+  assert.ok(result.stdout.includes('stroke-width="1"'), '--unit-size should set the stroke unit')
+}
+
 // a component bundled from outside the project must share the CLI's element
 // registry, otherwise its registerElements calls never reach the renderer
 function assertCliSharesRegistry() {
@@ -125,7 +152,7 @@ function assertCliSharesRegistry() {
     const component = join(dir, 'component.tsx')
     writeFileSync(component, `
       import { Circle, registerElements } from '@gum-jsx/core'
-      import { GUM } from 'react-gum-jsx'
+      import { GUM } from '@gum-jsx/react'
 
       class Blob extends Circle {}
       registerElements({ Blob })
@@ -149,7 +176,7 @@ function assertCliRawImport() {
     writeFileSync(dataPath, 'label,value\nraw import works,42\n', 'utf-8')
     writeFileSync(componentPath, `
       import csv from './data.csv?raw'
-      import { GUM } from 'react-gum-jsx'
+      import { GUM } from '@gum-jsx/react'
 
       const { Text } = GUM
 
@@ -176,7 +203,7 @@ function assertCliRawImportCwd() {
     writeFileSync(dataPath, 'label,value\ncwd import works,84\n', 'utf-8')
     writeFileSync(componentPath, `
       import csv from './data.csv?raw'
-      import { GUM } from 'react-gum-jsx'
+      import { GUM } from '@gum-jsx/react'
 
       const { Text } = GUM
 
@@ -200,6 +227,7 @@ const TESTS = [
   assertRendering,
   assertThemeSwitch,
   assertCliOutput,
+  assertUnitSize,
   assertCliSharesRegistry,
   assertCliRawImport,
   assertCliRawImportCwd,

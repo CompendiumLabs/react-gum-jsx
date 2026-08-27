@@ -127,7 +127,7 @@ function containerChildren(children: GumHostChild[]): GumElement[] {
 export function renderContainer(container: GumContainer): void {
   if (container.theme != null) setTheme(container.theme)
   const size = container.size
-  const props = container.props ?? {}
+  const props = toGumProps((container.props ?? {}) as GumHostProps)
   const children = containerChildren(container.rootChildren)
   const svgElem = new Svg({ size, children, ...props })
   const svg = svgElem.svg()
