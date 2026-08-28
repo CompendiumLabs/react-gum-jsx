@@ -108,7 +108,7 @@ The CLI bundles the component with `Bun.build`, but treats `react`, `@gum-jsx/re
 - **Language**: TypeScript (strict mode, ESM-only)
 - **React**: 19.x with `react-reconciler` 0.33.x
 - **CLI**: `commander` 14.x
-- **Graphics**: `@gum-jsx/core`, plus `@gum-jsx/math` (Latex), linked locally via `link:`
+- **Graphics**: `@gum-jsx/core` (a peer dependency, like `react` and `react-dom`: the host's single copy owns the element registry), plus `@gum-jsx/math` (Latex, a regular dependency). In the `gum-org` bun workspace these resolve to the sibling checkouts
 
 ## gum.jsx reference
 
