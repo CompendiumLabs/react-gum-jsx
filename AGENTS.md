@@ -1,6 +1,6 @@
 # @gum-jsx/react
 
-A custom React renderer for [gum.jsx](https://github.com/CompendiumLabs/gum.jsx), a vector graphics library. Uses `react-reconciler` to let you compose graphics with JSX and render to SVG.
+A custom React renderer for [gum.jsx](https://github.com/CompendiumLabs/gum-jsx), a vector graphics library. Uses `react-reconciler` to let you compose graphics with JSX and render to SVG.
 
 ## Architecture
 

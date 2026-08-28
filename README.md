@@ -1,6 +1,6 @@
 # @gum-jsx/react
 
-This is a React adapter for [gum.jsx](https://github.com/CompendiumLabs/gum.jsx). You can use it on the web or in the CLI.
+This is a React adapter for [gum.jsx](https://github.com/CompendiumLabs/gum-jsx). You can use it on the web or in the CLI.
 
 ## Installation
 
