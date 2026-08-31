@@ -1,5 +1,5 @@
 import { createElement, type PropsWithChildren } from 'react'
-import { ELEMS, is_string, type Attrs } from '@gum-jsx/core'
+import { defaultEnv, is_string, type Attrs } from '@gum-jsx/core'
 
 type GumPrimitiveProps = PropsWithChildren<Attrs>
 
@@ -11,10 +11,11 @@ function createPrimitive(name: string): GumPrimitiveComponent {
   }
 }
 
-// ELEMS is mutable — core fills it on import and add-ons such as @gum-jsx/math
-// call registerElements later (possibly after a top-level await, so even after
-// a consumer has destructured GUM at module scope) — so wrappers are handed out
-// for any name and the constructor is only looked up at render time
+// the default Env's element registry grows as plugins are used (`gum.use(math)`,
+// possibly after a consumer has destructured GUM at module scope), and a root
+// may render against another Env altogether, so wrappers are handed out for
+// any name and the constructor is only looked up at render time, in the Env
+// the root renders against
 const CACHE = new Map<string, GumPrimitiveComponent>()
 
 function getPrimitive(name: string): GumPrimitiveComponent {
@@ -28,10 +29,10 @@ function getPrimitive(name: string): GumPrimitiveComponent {
 
 const GUM: Record<string, GumPrimitiveComponent> = new Proxy({} as Record<string, GumPrimitiveComponent>, {
   get: (_target, key) => is_string(key) ? getPrimitive(key) : undefined,
-  has: (_target, key) => is_string(key) && key in ELEMS,
-  ownKeys: () => Object.keys(ELEMS),
+  has: (_target, key) => is_string(key) && key in defaultEnv().elems,
+  ownKeys: () => Object.keys(defaultEnv().elems),
   getOwnPropertyDescriptor: (_target, key) => {
-    if (!is_string(key) || !(key in ELEMS)) return undefined
+    if (!is_string(key) || !(key in defaultEnv().elems)) return undefined
     return { value: getPrimitive(key), enumerable: true, configurable: true, writable: false }
   },
 })

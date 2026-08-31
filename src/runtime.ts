@@ -1,7 +1,7 @@
 import { Children, type ReactElement, type ReactNode } from 'react'
 
-import { ELEMS, Element as GumElement, Svg, is_function, is_string, is_scalar, is_boolean, setTheme } from '@gum-jsx/core'
-import type { ElementConstructor } from '@gum-jsx/core'
+import { Element as GumElement, Svg, is_function, is_string, is_scalar, is_boolean, defaultEnv } from '@gum-jsx/core'
+import type { ElementConstructor, Env } from '@gum-jsx/core'
 
 import type { GumContainer, GumHostChild, GumHostInstance, GumHostProps } from './types'
 
@@ -27,20 +27,23 @@ function stripGumType(type: string): string {
   return type.startsWith('gum.') ? type.slice(4) : type
 }
 
-function getGumConstructor(type: string): ElementConstructor {
+// the constructor for a host type, out of the Env's element registry
+function getGumConstructor(env: Env, type: string): ElementConstructor {
   const name = stripGumType(type)
-  const ctor = ELEMS[name]
+  const ctor = env.elems[name]
   if (ctor == null) {
     throw new Error(`Unsupported gum primitive: ${name}`)
   }
   return ctor
 }
 
-function reactElementToGum(el: ReactElement): GumElement | null {
+// every element a render constructs is built against the container's Env
+// (theme, strict mode, fonts, ids), so `env` rides along the conversion
+function reactElementToGum(el: ReactElement, env: Env): GumElement | null {
   // if type is a component function (e.g. GumPrimitive), call it to unwrap
   if (is_function(el.type)) {
     const inner = (el.type as Function)(el.props)
-    if (isReactElement(inner)) return reactElementToGum(inner)
+    if (isReactElement(inner)) return reactElementToGum(inner, env)
     return null // components might want to return null
   }
 
@@ -50,35 +53,35 @@ function reactElementToGum(el: ReactElement): GumElement | null {
   }
 
   // here we're expecting some kind of gum primitive
-  const ctor = getGumConstructor(el.type)
-  const props = toGumProps(el.props as GumHostProps)
-  const children = reactChildrenToGum((el.props as GumHostProps).children as ReactNode)
-  const args = children.length > 0 ? { ...props, children } : props
+  const ctor = getGumConstructor(env, el.type)
+  const props = toGumProps(el.props as GumHostProps, env)
+  const children = reactChildrenToGum((el.props as GumHostProps).children as ReactNode, env)
+  const args = children.length > 0 ? { ...props, children, env } : { ...props, env }
   return new ctor(args)
 }
 
-function ensureReactConvert<T>(value: T | ReactElement): T | GumElement | null {
-  return isReactElement(value) ? reactElementToGum(value) : value
+function ensureReactConvert<T>(value: T | ReactElement, env: Env): T | GumElement | null {
+  return isReactElement(value) ? reactElementToGum(value, env) : value
 }
 
 // inject react->gum conversion if it's a function
-function toGumValue(value: unknown): unknown {
+function toGumValue(value: unknown, env: Env): unknown {
   if (is_function(value)) {
     return (...args: unknown[]) => {
       const result = (value as Function)(...args)
-      return ensureReactConvert(result)
+      return ensureReactConvert(result, env)
     }
   }
-  return ensureReactConvert(value)
+  return ensureReactConvert(value, env)
 }
 
 function toGumKey(key: string): string {
   return key.replace(/-/g, '_')
 }
 
-function reactNodeToGumChild(node: ReactNode): GumElement | string | null {
+function reactNodeToGumChild(node: ReactNode, env: Env): GumElement | string | null {
   if (node == null || is_boolean(node)) return null
-  if (isReactElement(node)) return reactElementToGum(node)
+  if (isReactElement(node)) return reactElementToGum(node, env)
   if (is_string(node) || is_scalar(node)) {
     const text = String(node).trim()
     return text.length > 0 ? text : null
@@ -86,50 +89,57 @@ function reactNodeToGumChild(node: ReactNode): GumElement | string | null {
   return null
 }
 
-function reactChildrenToGum(children: ReactNode): (GumElement | string)[] {
+function reactChildrenToGum(children: ReactNode, env: Env): (GumElement | string)[] {
   return Children.toArray(children)
-    .map((child) => reactNodeToGumChild(child))
+    .map((child) => reactNodeToGumChild(child, env))
     .filter((child): child is GumElement | string => child != null)
 }
 
-function toGumProps(props: GumHostProps): Record<string, unknown> {
+function toGumProps(props: GumHostProps, env: Env): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(props)) {
     if (RESERVED_PROPS.has(key)) continue
-    out[toGumKey(key)] = toGumValue(value)
+    out[toGumKey(key)] = toGumValue(value, env)
   }
   return out
 }
 
-function instanceToGum(instance: GumHostInstance): GumElement | null {
-  const ctor = getGumConstructor(instance.type)
-  const props = toGumProps(instance.props)
-  const children = containerChildren(instance.children)
-  const args = children.length > 0 ? { ...props, children } : props
+function instanceToGum(instance: GumHostInstance, env: Env): GumElement | null {
+  const ctor = getGumConstructor(env, instance.type)
+  const props = toGumProps(instance.props, env)
+  const children = containerChildren(instance.children, env)
+  const args = children.length > 0 ? { ...props, children, env } : { ...props, env }
   return new ctor(args)
 }
 
-function toGumChild(child: GumHostChild): GumElement | string | null {
+function toGumChild(child: GumHostChild, env: Env): GumElement | string | null {
   if (child.kind === 'text') {
     const text = child.text.trim()
     if (text.length === 0) return null
     return text
   }
-  return instanceToGum(child)
+  return instanceToGum(child, env)
 }
 
-function containerChildren(children: GumHostChild[]): GumElement[] {
+function containerChildren(children: GumHostChild[], env: Env): GumElement[] {
   return children
-    .map((child) => toGumChild(child))
+    .map((child) => toGumChild(child, env))
     .filter((c): c is GumElement => c != null)
 }
 
+// the Env a container renders against: its own (default: the default Env)
+// with its theme, so a render never touches the host's Env
+export function containerEnv(container: GumContainer): Env {
+  const env = container.env ?? defaultEnv()
+  return container.theme != null ? env.with({ theme: container.theme }) : env
+}
+
 export function renderContainer(container: GumContainer): void {
-  if (container.theme != null) setTheme(container.theme)
+  const env = containerEnv(container)
   const size = container.size
-  const props = toGumProps((container.props ?? {}) as GumHostProps)
-  const children = containerChildren(container.rootChildren)
-  const svgElem = new Svg({ size, children, ...props })
+  const props = toGumProps((container.props ?? {}) as GumHostProps, env)
+  const children = containerChildren(container.rootChildren, env)
+  const svgElem = new Svg({ size, children, ...props, env })
   const svg = svgElem.svg()
   container.currentSvg = svg
   container.currentSize = svgElem.size

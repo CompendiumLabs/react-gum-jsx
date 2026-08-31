@@ -30,13 +30,17 @@ export default function Demo() {
 }
 ```
 
-`GUM` tracks the gum.jsx element registry as it is filled in, so any add-on you import shows up on it. Import `@gum-jsx/math` once and `GUM.Latex` is there:
+`GUM` tracks the default `Env`'s element registry as it is filled in, so any plugin you use shows up on it. Use `@gum-jsx/math` once and `GUM.Latex` is there:
 
 ```tsx
-import '@gum-jsx/math'
+import { gum } from '@gum-jsx/core'
+import { math } from '@gum-jsx/math'
 import { GUM } from '@gum-jsx/react'
+gum.use(math)
 const { Latex } = GUM
 ```
+
+A root renders against an `Env` — the default one unless you pass `env` to `createGumRoot` or `<Gum>` — with its `theme` option layered on top, so a dark render never changes the Env itself. An element registered on some other Env (`new Env().use({ elems: { Blob } })`) renders on a root given that Env and nowhere else.
 
 In a CLI setting, you can use the `gum-react` command to render a React component to SVG on stdout:
 
@@ -47,7 +51,7 @@ gum-react component.tsx -s 800 -t dark > out.svg
 
 It accepts `-s/--size`, `-u/--unit-size` (the image size at which `stroke_width = 1` is one pixel, default `1000`), `-t/--theme` and `-c/--cwd` (base directory for relative `?raw` imports). The math elements are always available here — the CLI loads them for you.
 
-If you are in a web setting, you can use the `<Gum>` component to manage the DOM. This accepts very similar arguments to `evaluateGum` itself. For example:
+If you are in a web setting, you can use the `<Gum>` component to manage the DOM. This accepts very similar arguments to `evaluateGum` itself (`size`, `theme`, `env`, plus `Svg` props). For example:
 
 ```tsx
 import { Gum } from '@gum-jsx/react'

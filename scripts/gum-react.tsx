@@ -7,11 +7,12 @@ import { tmpdir } from 'os'
 import { dirname, isAbsolute, join, resolve } from 'path'
 import type { ComponentType } from 'react'
 
-import { setTheme, type ThemeName } from '@gum-jsx/core'
+import { gum, type ThemeName } from '@gum-jsx/core'
 import { createGumRoot } from '@gum-jsx/react'
+import { math } from '@gum-jsx/math'
 
-// registers the Latex/Tex elements with core so components can use them
-import '@gum-jsx/math'
+// the Latex/Tex elements, so components can use them
+gum.use(math)
 
 interface CliOptions {
   size: number
@@ -38,8 +39,8 @@ interface BundleOptions {
 }
 
 // packages the CLI has already loaded — a component must share these instances
-// rather than get a bundled copy of its own, so that registerElements and
-// setTheme calls it makes land in the registry the renderer actually reads
+// rather than get a bundled copy of its own, so that the default Env it
+// extends (`gum.use(...)`) is the one the renderer actually reads
 const PROVIDED_PACKAGES: readonly string[] = [
   'react',
   '@gum-jsx/react',
@@ -76,7 +77,7 @@ function findPackageRoot(name: string): string | null {
 
 // resolve against the CLI's own install rather than the component's project:
 // the renderer doing the work is ours, so the component has to share our React
-// and our element registry for hooks and registerElements to behave
+// and our default Env for hooks and gum.use(...) to behave
 function providedPackageRoot(name: string): string | null {
   if (name == '@gum-jsx/react') return resolve(import.meta.dir, '..')
   return findPackageRoot(name)
@@ -183,7 +184,6 @@ async function main() {
   if (input == null) throw new Error('component path is required')
 
   const { size, unitSize, theme, cwd } = program.opts<CliOptions>()
-  setTheme(theme)
   let cleanup = () => {}
 
   try {

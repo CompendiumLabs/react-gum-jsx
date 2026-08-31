@@ -1,4 +1,4 @@
-import type { Size, ThemeName } from '@gum-jsx/core'
+import type { Size, ThemeName, Env } from '@gum-jsx/core'
 
 export type GumHostType = `gum.${string}`
 
@@ -26,6 +26,7 @@ export type GumHostChild = GumHostInstance | GumHostText
 export interface GumContainer {
   size: number | Size
   theme?: ThemeName
+  env?: Env
   props?: Record<string, unknown>
   rootChildren: GumHostChild[]
   currentSvg: string

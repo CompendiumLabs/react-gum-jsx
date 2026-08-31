@@ -4,11 +4,12 @@ import { useLayoutEffect, useRef } from 'react'
 import { createGumRoot, type GumRoot } from './renderer'
 
 import type { CSSProperties, PropsWithChildren } from 'react'
-import type { Size, ThemeName } from '@gum-jsx/core'
+import type { Size, ThemeName, Env } from '@gum-jsx/core'
 
 export interface GumProps {
   size?: number | Size
   theme?: ThemeName
+  env?: Env
   className?: string
   style?: CSSProperties
   [key: string]: unknown
@@ -17,6 +18,7 @@ export interface GumProps {
 export function Gum({
   size = 500,
   theme = 'light',
+  env,
   className,
   style,
   children,
@@ -32,6 +34,7 @@ export function Gum({
     const root = createGumRoot({
       size,
       theme,
+      env,
       props: props,
       onRender: (svg) => {
         host.innerHTML = svg
@@ -55,6 +58,10 @@ export function Gum({
   useLayoutEffect(() => {
     rootRef.current?.setTheme(theme)
   }, [theme])
+
+  useLayoutEffect(() => {
+    rootRef.current?.setEnv(env)
+  }, [env])
 
   useLayoutEffect(() => {
     const root = rootRef.current

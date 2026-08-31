@@ -4,7 +4,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
-import { setTheme } from '@gum-jsx/core'
+import { gum, Env, Circle as GumCircle } from '@gum-jsx/core'
+import { math } from '@gum-jsx/math'
 import { createGumRoot, GUM } from '../src/index'
 import Scene from '../test/component'
 
@@ -30,8 +31,9 @@ function withTempDir(prefix: string, fn: (dir: string) => void) {
 // primitives
 //
 
-// must run before anything pulls in an add-on: GUM resolves names against the
-// live ELEMS registry at render time rather than snapshotting it at module load
+// must run before anything applies a plugin to the default Env: GUM resolves
+// names against its live registry at render time rather than snapshotting it
+// at module load
 async function assertRegistryIsLive() {
   assert.ok(Object.keys(GUM).length > 0, 'GUM should expose the core elements')
   assert.equal(typeof GUM.Circle, 'function')
@@ -46,18 +48,40 @@ async function assertRegistryIsLive() {
   }, /Unsupported gum primitive: NotAnElement/)
 
   const before = Object.keys(GUM).length
-  assert.ok(!('Latex' in GUM), 'Latex should not be registered before @gum-jsx/math loads')
-  const { Latex } = GUM // destructured before the add-on loads
+  assert.ok(!('Latex' in GUM), 'Latex should not be registered before the math plugin is used')
+  const { Latex } = GUM // destructured before the plugin is used
 
-  await import('@gum-jsx/math')
+  gum.use(math)
 
-  assert.ok('Latex' in GUM, 'registerElements should be picked up after module load')
+  assert.ok('Latex' in GUM, 'a plugin used on the default Env should be picked up')
   assert.equal(typeof GUM.Latex, 'function')
-  assert.ok(Object.keys(GUM).length > before, 'add-on elements should show up in Object.keys')
+  assert.ok(Object.keys(GUM).length > before, 'plugin elements should show up in Object.keys')
 
   const root = createGumRoot()
   root.render(<Latex>x^2</Latex>)
   assert.ok(root.getSvg().includes('<svg'), 'an element destructured before registration should render after it')
+}
+
+// a root renders against its own Env: an element only registered there works
+// on it and nowhere else, and its settings are read while rendering
+function assertRootEnv() {
+  class Blorp extends GumCircle {}
+  const env = new Env({ theme: 'dark' }).use({ elems: { Blorp } })
+  const { Blorp: BlorpPrim } = GUM
+  const root = createGumRoot({ env })
+  root.render(<BlorpPrim fill="red" />)
+  assert.ok(root.getSvg().includes('fill="red"'), 'an element registered on the root Env should render')
+  assert.throws(() => createGumRoot().render(<BlorpPrim />), /Unsupported gum primitive: Blorp/)
+
+  const dark = createGumRoot({ theme: 'dark' })
+  dark.render(<Circle />)
+  const viaEnv = createGumRoot({ env })
+  viaEnv.render(<Circle />)
+  assert.equal(viaEnv.getSvg(), dark.getSvg(), 'the Env theme should apply')
+  const overridden = createGumRoot({ env, theme: 'light' })
+  overridden.render(<Circle />)
+  assert.notEqual(overridden.getSvg(), dark.getSvg(), 'the theme option should override the Env theme')
+  assert.equal(env.theme, 'dark', 'rendering must not change the Env')
 }
 
 //
@@ -104,7 +128,9 @@ function assertThemeSwitch() {
   dark.render(<Circle />)
 
   assert.notEqual(light.getSvg(), dark.getSvg(), 'theme should affect the rendered svg')
-  setTheme('light')
+  const again = createGumRoot()
+  again.render(<Circle />)
+  assert.equal(again.getSvg(), light.getSvg(), 'a dark render must not leak into the next root')
 }
 
 //
@@ -145,17 +171,17 @@ function assertUnitSize() {
   assert.ok(result.stdout.includes('stroke-width="1"'), '--unit-size should set the stroke unit')
 }
 
-// a component bundled from outside the project must share the CLI's element
-// registry, otherwise its registerElements calls never reach the renderer
+// a component bundled from outside the project must share the CLI's default
+// Env, otherwise the elements it adds to it never reach the renderer
 function assertCliSharesRegistry() {
   withTempDir('gum-react-registry-', dir => {
     const component = join(dir, 'component.tsx')
     writeFileSync(component, `
-      import { Circle, registerElements } from '@gum-jsx/core'
+      import { Circle, gum } from '@gum-jsx/core'
       import { GUM } from '@gum-jsx/react'
 
       class Blob extends Circle {}
-      registerElements({ Blob })
+      gum.use({ elems: { Blob } })
 
       export default function CustomElement() {
         return <GUM.Blob fill="red" />
@@ -224,6 +250,7 @@ function assertCliRawImportCwd() {
 
 const TESTS = [
   assertRegistryIsLive,
+  assertRootEnv,
   assertRendering,
   assertThemeSwitch,
   assertCliOutput,
