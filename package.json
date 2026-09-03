@@ -1,6 +1,6 @@
 {
   "name": "@gum-jsx/react",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "A React adapter for gum-jsx",
   "type": "module",
   "author": "Douglas Hanley",
@@ -38,18 +38,18 @@
     "gum-react": "scripts/gum-react.tsx"
   },
   "peerDependencies": {
-    "@gum-jsx/core": "^1.8.0",
+    "@gum-jsx/core": "^1.9.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "dependencies": {
-    "@gum-jsx/math": "^1.8.0",
+    "@gum-jsx/math": "^1.9.0",
     "@types/react-reconciler": "^0.33.0",
     "commander": "^14.0.3",
     "react-reconciler": "^0.33.0"
   },
   "devDependencies": {
-    "@gum-jsx/core": "^1.8.0",
+    "@gum-jsx/core": "^1.9.0",
     "@types/bun": "^1.3.13",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
