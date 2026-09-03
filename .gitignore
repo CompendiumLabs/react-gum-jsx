@@ -3,3 +3,4 @@ bun.lock
 dist
 tsconfig.tsbuildinfo
 .codex
+types

@@ -1,5 +1,5 @@
 import { createElement, type PropsWithChildren } from 'react'
-import { defaultEnv, is_string, type Attrs } from '@gum-jsx/core'
+import { CORE_ELEMS, defaultEnv, is_string, type Attrs } from '@gum-jsx/core'
 
 type GumPrimitiveProps = PropsWithChildren<Attrs>
 
@@ -27,7 +27,15 @@ function getPrimitive(name: string): GumPrimitiveComponent {
   return prim
 }
 
-const GUM: Record<string, GumPrimitiveComponent> = new Proxy({} as Record<string, GumPrimitiveComponent>, {
+// core's element names are known statically, so they are typed as always
+// present (a plugin's, such as Latex, are only known once it is used and come
+// out as possibly undefined under noUncheckedIndexedAccess); the proxy itself
+// answers any name
+export type GumElements =
+  { readonly [K in keyof typeof CORE_ELEMS]: GumPrimitiveComponent } &
+  { readonly [name: string]: GumPrimitiveComponent }
+
+const GUM: GumElements = new Proxy({} as GumElements, {
   get: (_target, key) => is_string(key) ? getPrimitive(key) : undefined,
   has: (_target, key) => is_string(key) && key in defaultEnv().elems,
   ownKeys: () => Object.keys(defaultEnv().elems),

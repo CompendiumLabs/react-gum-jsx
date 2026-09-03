@@ -40,6 +40,8 @@ gum.use(math)
 const { Latex } = GUM
 ```
 
+Core's element names are typed as always present on `GUM`; a plugin's are only known at runtime, so under `noUncheckedIndexedAccess` they come out as `GumPrimitiveComponent | undefined` and want a `!` where you take them (`const Latex = GUM.Latex!`).
+
 A root renders against an `Env` — the default one unless you pass `env` to `createGumRoot` or `<Gum>` — with its `theme` option layered on top, so a dark render never changes the Env itself. An element registered on some other Env (`new Env().use({ elems: { Blob } })`) renders on a root given that Env and nowhere else.
 
 In a CLI setting, you can use the `gum-react` command to render a React component to SVG on stdout:
