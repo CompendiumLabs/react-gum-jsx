@@ -41,7 +41,7 @@ SVG String
 - **Props filtering**: Reserved props (`key`, `ref`, `__self`, `__source`, `children`) are stripped before passing to gum constructors. Remaining keys are converted kebab-to-snake (`point-shape` → `point_shape`).
 - **Function props**: Values that are functions get wrapped so that any `ReactElement` they return is converted to a gum `Element` on demand (enables callbacks like `point-shape={(x) => <Square />}`).
 - **Custom component unwrapping**: If a JSX element's `type` is a function (not a string), `runtime.ts` calls it with its props and recurses on the result — so user-defined React components nest inside the gum tree.
-- **Text handling**: JSX text children are trimmed; non-empty strings are passed as children to gum constructors.
+- **Text handling**: String children are passed unchanged to gum constructors. `Text` handles whitespace normalization; `whitespace="preserve"` and `Verbatim` retain literal spaces and newlines.
 - **Render errors**: Captured on the container and rethrown from `root.render()` so React doesn't swallow them.
 
 ## Usage

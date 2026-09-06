@@ -83,8 +83,7 @@ function reactNodeToGumChild(node: ReactNode, env: Env): GumElement | string | n
   if (node == null || is_boolean(node)) return null
   if (isReactElement(node)) return reactElementToGum(node, env)
   if (is_string(node) || is_scalar(node)) {
-    const text = String(node).trim()
-    return text.length > 0 ? text : null
+    return String(node)
   }
   return null
 }
@@ -114,9 +113,7 @@ function instanceToGum(instance: GumHostInstance, env: Env): GumElement | null {
 
 function toGumChild(child: GumHostChild, env: Env): GumElement | string | null {
   if (child.kind === 'text') {
-    const text = child.text.trim()
-    if (text.length === 0) return null
-    return text
+    return child.text
   }
   return instanceToGum(child, env)
 }
